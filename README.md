@@ -1,6 +1,11 @@
 
 # Proxmox on a Laptop over WiFi
 
+**NOTE**
+
+I haven't tested these scripts yet. I'll be testing them in a couple of days after backing up my current setup. I'm not responsible if these scripts messes up your proxmox fresh installation.
+But, if you are willing to risk it and don't mind reinstalling proxmox reach out to me at prudhvi@themonk14.com
+
 Proxmox VE Deployment with Real-Time Network Security and Incident Response Frameworks 
 
 This project focuses on the automation of creation of virtualized network environment by using Proxmox VE. For networking the following components are set up in the script; A virtual bridge called vmbr0, DHCP server via dnsmasq: NAT and packet forwarding via iptables. This setup enables VMs in Proxmox to be in a position to communicate with each other and also access the internet.

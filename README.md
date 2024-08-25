@@ -23,10 +23,23 @@ You need to mount the USB drive and install wpa_supplicant manually. This script
 
 ## Installation
 
-Run the proxmox_setup.sh file on a fresh proxmox installation
+Clone the repository using 
+```bash
+  git clone https://github.com/themonk14/proxmox-on-laptop.git
+  cd proxmox-on-laptop
+```
+
+or download the zip file and extract it.
+
+Run the proxmox-setup.sh file on a fresh proxmox installation. Ignore changing directory command if you're already in the cloned directory.
 ```bash
   cd proxmox-on-laptop
   chmod +x proxmox-setup.sh
   bash proxmox-setup.sh
 ```
-    
+
+Run the deploying-tools.sh file to automate setting up sftp server, Wazuh and velociraptor
+```bash
+  chmod +x deploying-tools.sh
+  bash deploying-tools.sh
+```

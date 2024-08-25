@@ -38,7 +38,7 @@ Run the proxmox-setup.sh file on a fresh proxmox installation. Ignore changing d
   bash proxmox-setup.sh
 ```
 
-Run the deploying-tools.sh file to automate setting up sftp server, Wazuh and velociraptor
+Run the deploying-tools.sh file to automate creating containers and setting up sftp server, Wazuh and velociraptor.
 ```bash
   chmod +x deploying-tools.sh
   bash deploying-tools.sh

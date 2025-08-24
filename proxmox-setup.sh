@@ -16,7 +16,7 @@ read -p "Shall I connect to this network ? (Y/n) : " confirm && [[ $confirm == [
 
 # Write the configuration to the wpasupplicant file while creating a backup of the old file. 
 cp /etc/wpa_supplicant/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf.old
-
+#test
 cat <<EOF > /etc/wpa_supplicant/wpa_supplicant.conf
 network={
     ssid="$ssid"

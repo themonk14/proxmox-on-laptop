@@ -2,6 +2,35 @@
 
 #Run this script only after installing wpasupplicant and its dependencies in proxmox
 
+# Ensure required tools are installed
+if ! command -v apt-rdepends &>/dev/null; then
+    echo "Installing apt-rdepends..."
+    sudo apt-get update
+    sudo apt-get install -y apt-rdepends
+fi
+
+# Create a directory for the downloaded packages
+DOWNLOAD_DIR="wpasupplicant_debs"
+mkdir -p "$DOWNLOAD_DIR"
+
+# Download wpasupplicant and all dependencies
+echo "Downloading wpasupplicant and its dependencies..."
+apt-rdepends wpasupplicant 2>/dev/null | grep -v "^ " | grep -v "^<" | while read dep; do
+    echo "Downloading $dep..."
+    apt-get download "$dep" -y -o=dir::cache="$DOWNLOAD_DIR"
+done
+
+echo "All .deb files downloaded to $DOWNLOAD_DIR/"
+
+# Install all downloaded packages
+echo "Installing downloaded packages..."
+sudo dpkg -i $DOWNLOAD_DIR/*.deb
+
+# Fix any missing dependencies
+sudo apt-get install -f -y
+
+echo "wpasupplicant and its dependencies have been installed."
+
 #List available wifi interface
 wlan_interface=$(ip link show | grep 'state UP' | awk -F: '$2 ~ /w/ {print $2}' | tr -d ' ')
 

@@ -1,5 +1,11 @@
 #!/bin/bash
 
+#install iw package if not installed
+if ! dpkg -s iw > /dev/null 2>&1; then
+    apt-get update
+    apt-get install -y iw wireless-tools
+fi
+
 # Detect the wireless interface
 wlan_interface=$(iw dev | awk '$1=="Interface"{print $2}' | head -n1)
 if [ -z "$wlan_interface" ]; then

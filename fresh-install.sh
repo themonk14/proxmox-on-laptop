@@ -1,5 +1,9 @@
 #!/bin/bash
+#run this script only if proxmox is connected to a ethernet interface and you want to set up a wifi access point.
+#This script will set up a wifi access point using hostapd and dnsmasq, and configure iptables for NAT.
 
+#List available wifi interface
+wlan_interface=$(ip link show | grep 'state UP' | awk -F: '$2 ~ /w/ {print $2}' | tr -d ' ')
 # Install hostapd and dnsmasq if they are not installed
 if ! dpkg -s hostapd > /dev/null 2>&1; then
     apt-get update
@@ -21,7 +25,7 @@ systemctl restart dnsmasq
 
 # Configure hostapd
 cat <<EOF > /etc/hostapd/hostapd.conf
-interface=vmbr0
+interface=$wlan_interface
 driver=nl80211
 ssid=ProxmoxAP
 hw_mode=g
@@ -70,13 +74,13 @@ echo 1 > /proc/sys/net/ipv4/ip_forward
 # Set up new iptables rules
 
 # Enable NAT for outgoing traffic on wlp45s0
-iptables -t nat -A POSTROUTING -o wlp45s0 -j MASQUERADE
+iptables -t nat -A POSTROUTING -o $wlan_interface -j MASQUERADE
 
 # Allow forwarding from vmbr0 to wlp45s0
-iptables -A FORWARD -i vmbr0 -o wlp45s0 -j ACCEPT
+iptables -A FORWARD -i vmbr0 -o $wlan_interface -j ACCEPT
 
 # Allow established connections from wlp45s0 to vmbr0
-iptables -A FORWARD -i wlp45s0 -o vmbr0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i $wlan_interface -o vmbr0 -m state --state RELATED,ESTABLISHED -j ACCEPT
 
 # Save iptables rules
 iptables-save > /etc/iptables/rules.v4

@@ -52,10 +52,41 @@ initial_config() {
 #This will configure the wireless interface and the vmbr0 bridge. 
 #It will backup the old /etc/network/interfaces file and create a new file at the same path
 
-read -p "Enter the WiFi you'd like to connect to : " ssid
-read -p "Enter WiFi password : " psk
+#read -p "Enter the WiFi you'd like to connect to : " ssid
+#read -p "Enter WiFi password : " psk
+#echo
+#read -p "Shall I connect to this network ? (Y/n) : " confirm && [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]] || exit 1
+echo "Scanning for available WiFi networks..."
+mapfile -t ssids < <(iwlist "$wlan_interface" scan | grep 'ESSID:' | sed 's/.*ESSID:"\(.*\)"/\1/' | sort | uniq | grep -v '^$')
+
+if [ ${#ssids[@]} -eq 0 ]; then
+    echo "No WiFi networks found."
+    exit 1
+fi
+
+echo "Available WiFi networks:"
+for i in "${!ssids[@]}"; do
+    printf "%2d) %s\n" $((i+1)) "${ssids[$i]}"
+done
+
+# Ask user to select a network
+read -p "Enter the number of the WiFi network to connect to: " choice
+ssid="${ssids[$((choice-1))]}"
+if [ -z "$ssid" ]; then
+    echo "Invalid selection."
+    exit 1
+fi
+
+# Ask for password (input hidden)
+read -rsp "Enter password for '$ssid': " psk
 echo
-read -p "Shall I connect to this network ? (Y/n) : " confirm && [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]] || exit 1
+
+# Confirm connection
+read -p "Connect to '$ssid'? (Y/n): " confirm
+if [[ ! "$confirm" =~ ^([yY][eE][sS]?|[yY])$ ]]; then
+    echo "Aborted."
+    exit 1
+fi
 
 # Write the configuration to the wpasupplicant file while creating a backup of the old file. 
 cp /etc/wpa_supplicant/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf.old

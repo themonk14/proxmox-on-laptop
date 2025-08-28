@@ -13,29 +13,29 @@ fi
 if ! command -v apt-rdepends &>/dev/null; then
     echo "Installing apt-rdepends..."
     $SUDO apt-get update
-    $SUDO apt-get install -y apt-rdepends net-tools ucharge vlock
+    $SUDO apt-get install -y apt-rdepends net-tools upower wireless-tools vlock
 fi
 
 # Create a directory for the downloaded packages
-DOWNLOAD_DIR="wpasupplicant_debs"
-mkdir -p "$DOWNLOAD_DIR"
+#DOWNLOAD_DIR="wpasupplicant_debs"
+#mkdir -p "$DOWNLOAD_DIR"
 
 # Download wpasupplicant and all dependencies
-echo "Downloading wpasupplicant and its dependencies..."
-apt-rdepends wpasupplicant 2>/dev/null | grep -v "^ " | grep -v "^<" | while read dep; do
-    echo "Downloading $dep..."
-    apt-get download "$dep" -y -o=dir::cache="$DOWNLOAD_DIR"
-done
+#if [] ; then echo "Downloading wpasupplicant and its dependencies..."
+#apt-rdepends wpasupplicant 2>/dev/null | grep -v "^ " | grep -v "^<" | while read dep; do
+#    echo "Downloading $dep..."
+#    apt-get download "$dep" -y -o=dir::cache="$DOWNLOAD_DIR" 2>/dev/null || { echo "Failed to download $dep. Exiting."; exit 1; }
+#done
 
-echo "All .deb files downloaded to $DOWNLOAD_DIR/"
+#echo "All .deb files downloaded to $DOWNLOAD_DIR/"
 
 
 # Install all downloaded packages
-echo "Installing downloaded packages..."
-$SUDO dpkg -i $DOWNLOAD_DIR/*.deb
+#echo "Installing downloaded packages..."
+#$SUDO dpkg -i $DOWNLOAD_DIR/*.deb
 
 # Fix any missing dependencies
-$SUDO apt-get install -f -y
+$SUDO apt-get install -f -y && $SUDO apt-get install -y wpasupplicant
 
 echo "wpasupplicant and its dependencies have been installed."
 

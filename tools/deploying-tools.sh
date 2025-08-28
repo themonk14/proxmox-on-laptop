@@ -14,25 +14,73 @@ else
     fi
 fi
 
+#Download ISO files
+iso_dir="/var/lib/vz/template/iso"
+declare -A iso_urls=(
+    ["ubuntu-22.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04-desktop-amd64.iso"
+    ["ubuntu-24.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04-desktop-amd64.iso"
+    ["kali-latest.iso"]="https://cdimage.kali.org/kali-2023.4/kali-linux-2023.4-amd64.iso"
+#    ["windows.iso"]="https://software-download.microsoft.com/db/Win11_22H2_English_x64.iso"
+    ["caine.iso"]="https://www.caine-live.net/Downloads/caine14.0.iso"
+)
+for iso in "${!iso_urls[@]}"; do
+    if [ -f "$iso_dir/$iso" ]; then
+        echo "$iso already exists."
+    else
+        echo "Downloading $iso..."
+        if ! wget -O "$iso_dir/$iso" "${iso_urls[$iso]}"; then
+            echo "Failed to download $iso. Exiting."
+            exit 1
+        fi
+    fi
+done
+
+
 #Create containers for SFTP, Velociraptor, Wazuh
 
-if ! pct create 101 local:vztmpl/$template_name --hostname SFTP-Server-Ubu --storage local-lvm --rootfs 32 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow; then
+if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname SFTP-Server-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for SFTP with CT-ID:101. Exiting Now....................."
     exit 1
 fi
 
-if ! pct create 102 local:vztmpl/$template_name --hostname Wazuh-Ubu --storage local-lvm --rootfs 40 --memory 4096 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=4 --password changemenow; then
+if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 40 --memory 4096 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=4 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Wazuh with CT-ID:102. Exiting Now....................."
     exit 1
 fi
 
-if ! pct create 103 local:vztmpl/$template_name --hostname Velociraptor-Ubu --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow; then
+if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Velociraptor with CT-ID:103. Exiting Now....................."
     exit 1
 fi
 
-#This is where installation happens.
+if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+    echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
+    exit 1
+fi
 
+#create VMs for Ubuntu, Kali, Windows, CaineOS
+
+if ! qm create 201 --name ubuntu-vm --memory 4096 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/ubuntu-22.04.iso,media=cdrom --boot order=ide2 --ostype l26;then
+    echo "Failed to create VM for Ubuntu with VM-ID:201. Exiting Now....................."
+    exit 1
+fi
+
+if ! qm create 202 --name kali-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/kali-latest.iso,media=cdrom --boot order=ide2 --ostype l26;then
+    echo "Failed to create VM for Kali with VM-ID:202. Exiting Now....................."
+    exit 1
+fi
+
+if ! qm create 203 --name windows-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/windows.iso,media=cdrom --boot order=ide2 --ostype win11;then
+    echo "Failed to create VM for Windows with VM-ID:203. Exiting Now....................."
+    exit 1
+fi
+
+if ! qm create 204 --name CaineOS --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/caine.iso,media=cdrom --boot order=ide2 --ostype l26;then
+    echo "Failed to create VM for CaineOS with VM-ID:204. Exiting Now....................."
+    exit 1
+fi
+
+#--------------------------------SFTP SERVER SETUP--------------------------------
 setup_sftp(){
     while true; do
         read -p "Enter sftp username : " usname 
@@ -43,21 +91,139 @@ setup_sftp(){
         fi
     done
     pct start 101 && pct exec 101 -- bash -c "mkdir -p /ftpdir && chmod 701 /ftpdir && groupadd sftp_users && useradd -g sftp_users -d /upload -s /sbin/nologin $usname && echo \"Enter password for the new user\" && passwd $usname && mkdir -p /ftpdir/$usname/upload && chown -R root:sftp_users /ftpdir/$usname && chown -R $usname:sftp_users /ftpdir/$usname/upload && echo -e \"\nMatch Group sftp_users\nChrootDirectory /ftpdir/%u\nForceCommand internal-sftp\" >> /etc/ssh/sshd_config && systemctl restart sshd"
+    
+    #setup aliases and install net-tools
+    pct exec 101 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
+    
+    #pct exec 101 -- bash -c '
+    #dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y &&
+    #cat <<'EOF' >> /root/.bashrc
+    #    alias upd="apt update -y"
+    #    alias upg="apt upgrade -y"
+    #    alias cx="clear"
+    #   alias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"
+    #    alias instl="apt install -y"
+    #    alias serve="ip a && python3 -m http.server 9090"
+    #EOF' || { echo "Failed to set aliases or install net-tools in Velociraptor container. Exiting."; exit 1; }
+
 }
 
 setup_sftp
 
+#-------------------------------WAZUH SETUP--------------------------------
+
 install_wazuh(){
-    pct start 102 && pct exec 102 -- bash -c "curl -sO https://packages.wazuh.com/4.8/wazuh-install.sh && bash ./wazuh-install.sh -a && echo \"You can access Wazuh dashboard at https://192.168.50.105/\""
+    pct start 102 && pct exec 102 -- bash -c "curl -sO https://packages.wazuh.com/4.12/wazuh-install.sh && bash ./wazuh-install.sh -a && echo \"You can access Wazuh dashboard at https://192.168.50.105/\""
+    #setup aliases and install net-tools
+    pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
+    #setup aliases and install net-tools
+    #pct exec 102 -- bash -c '
+    #pkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y &&
+    #cat <<'EOF' >> /root/.bashrc
+    #    alias upd="apt update -y"
+    #    alias upg="apt upgrade -y"
+    #    alias cx="clear"
+    #    alias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"
+    #    alias instl="apt install -y"
+    #    alias serve="ip a && python3 -m http.server 9090"
+    #EOF' || { echo "Failed to set aliases or install net-tools in Velociraptor container. Exiting."; exit 1; }
+
 }
 
 install_wazuh
 
+#-------------------------------VELOCIRAPTOR SETUP--------------------------------
+
 install_velociraptor(){
     pct start 103 || { echo "Failed to start container for Velociraptor with CT-ID:103. Exiting Now....................."; exit 1; }
     pct exec 103 -- bash -c "[ ! -d /etc ] && mkdir /etc; [ ! -f /etc/velociraptor.config.yaml ] && touch /etc/velociraptor.config.yaml" || { echo "Failed to prepare configuration for Velociraptor. Exiting."; exit 1; }
+    #setup aliases and install net-tools
+    pct exec 103 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in Velociraptor container. Exiting."; exit 1; }
+
     pct exec 103 -- bash -c "[ ! -d /lib/systemd/system ] && mkdir -p /lib/systemd/system" || { echo "Failed to prepare systemd directory. Exiting."; exit 1; }
-    pct exec 103 -- bash -c "wget https://github.com/Velocidex/velociraptor/releases/download/v0.72/velociraptor-v0.72.4-linux-amd64 && cp ./velociraptor* /usr/local/bin/velociraptor && chmod +x /usr/local/bin/velociraptor && /usr/local/bin/velociraptor config generate -i && sed -i 's/bind_address: 127.0.0.1/bind_address: 192.168.50.110/' /etc/velociraptor.config.yaml && touch /lib/systemd/system/velociraptor.service && echo -e \"[Unit]\nDescription=Velociraptor\nAfter=syslog.target network.target\n\n[Service]\nType=simple\nRestart=always\nRestartSec=120\nLimitNOFILE=20000\nEnvironment=LANG=en_US.UTF-8\nExecStart=/usr/local/bin/velociraptor --config /etc/velociraptor.config.yaml frontend -v\n\n[Install]\nWantedBy=multi-user.target\" > /lib/systemd/system/velociraptor.service && systemctl daemon-reload && systemctl enable --now velociraptor && echo 'https://192.168.50.110:8889/app/index.html'" || { echo "Failed to install Velociraptor. Exiting."; exit 1; }
+    pct exec 103 -- bash -c '
+    cat << "EOF" > /tmp/install_velociraptor.sh
+    #!/bin/bash
+    set -e
+    
+    wget https://github.com/Velocidex/velociraptor/releases/download/v0.72/velociraptor-v0.72.4-linux-amd64
+    cp ./velociraptor-v0.72.4-linux-amd64 /usr/local/bin/velociraptor
+    chmod +x /usr/local/bin/velociraptor
+    /usr/local/bin/velociraptor config generate -i
+    sed -i "s/bind_address: 127.0.0.1/bind_address: 192.168.50.110/" /etc/velociraptor.config.yaml
+    
+    cat <<EOL > /lib/systemd/system/velociraptor.service
+    [Unit]
+    Description=Velociraptor
+    After=syslog.target network.target
+    
+    [Service]
+    Type=simple
+    Restart=always
+    RestartSec=120
+    LimitNOFILE=20000
+    Environment=LANG=en_US.UTF-8
+    ExecStart=/usr/local/bin/velociraptor --config /etc/velociraptor.config.yaml frontend -v
+    
+    [Install]
+    WantedBy=multi-user.target
+    EOL
+    
+    systemctl daemon-reload
+    systemctl enable --now velociraptor
+    
+    echo "https://192.168.50.110:8889/app/index.html"
+    EOF
+    
+    chmod +x /tmp/install_velociraptor.sh
+    bash /tmp/install_velociraptor.sh
+    ' || { echo "Failed to install Velociraptor. Exiting."; exit 1; }
 }
 
 install_velociraptor
+
+#-------------------------------GRR-RAPID SETUP--------------------------------
+
+setup_grr(){
+    pct start 104 || { echo "Failed to start container for GRR-Rapid with CT-ID:104. Exiting Now....................."; exit 1; }
+    pct exec 104 -- bash -c "apt update -y && apt install mariadb-server -y && wget https://storage.googleapis.com/releases.grr-response.com/grr-server_3.4.7-1_amd64.deb "  
+    pct exec 104 -- bash -lc '
+    set -euo pipefail
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update && apt-get install -y expect
+    expect << "EOF"
+    log_user 1
+    spawn mysql_secure_installation
+    set timeout 120
+
+    expect -re {Enter current password for root.*:}
+    send "\r"
+
+    # Some MariaDB builds show this. Answer "n" and continue; if not shown, we fall through.
+    expect {
+        -re {Switch to unix_socket authentication.*\[Y/n\]} { send "n\r"; exp_continue }
+        -re {Set root password\?.*\[Y/n\]} { send "n\r" }
+    }
+
+    expect -re {Remove anonymous users\?.*\[Y/n\]}
+    send "Y\r"
+
+    expect -re {Disallow root login remotely\?.*\[Y/n\]}
+    send "Y\r"
+
+    expect -re {Remove test database.*\[Y/n\]}
+    send "Y\r"
+
+    expect -re {Reload privilege tables now\?.*\[Y/n\]}
+    send "Y\r"
+
+    expect eof
+    EOF
+    ' 
+    #pct exec 104 -- bash -c "apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc
+    
+    #setup aliases and install net-tools
+    pct exec 104 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
+}
+
+setup_grr

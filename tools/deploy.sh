@@ -1,5 +1,7 @@
 #!/bin/bash
+# Script to automate the deployment of various tools and VMs on Proxmox
 
+#--------------------------------LXC TEMPLATE DOWNLOAD--------------------------------
 pveam update && pveam available
 read -p "Enter the template which you'd like to download" template_name
 storage="local"
@@ -14,7 +16,44 @@ else
     fi
 fi
 
-#Download ISO files
+# Optional: Download additional templates ----- If you want to skip this part, just press 'N' when prompted.
+echo "Would you like to download additional LXC templates? (Y/N)"
+read -r download_more
+if [[ "$download_more" =~ ^[Yy]$ ]]; then
+    echo "Fetching available templates..."
+    pveam update > /dev/null 2>&1
+    mapfile -t templates < <(pveam available | awk '{print $2}' | grep -v '^$')
+    if [ ${#templates[@]} -eq 0 ]; then
+        echo "No templates found."
+    else
+        echo "Available templates:"
+        for i in "${!templates[@]}"; do
+            printf "%3d) %s\n" $((i+1)) "${templates[$i]}"
+        done
+        echo "Enter the numbers of the templates you want to download (comma separated, e.g. 1,3,5):"
+        read -r selected
+        IFS=',' read -ra idxs <<< "$selected"
+        for idx in "${idxs[@]}"; do
+            idx_trim=$(echo "$idx" | xargs)
+            if [[ "$idx_trim" =~ ^[0-9]+$ ]] && [ "$idx_trim" -ge 1 ] && [ "$idx_trim" -le ${#templates[@]} ]; then
+                tname="${templates[$((idx_trim-1))]}"
+                echo "Downloading $tname ..."
+                if ! pveam download local "$tname"; then
+                    echo "Failed to download $tname."
+                fi
+            else
+                echo "Invalid selection: $idx_trim"
+            fi
+        done
+    fi
+fi
+
+echo 'Available debian templates for sandbox containers : \n'
+pveam list $storage | grep -i $storage:$dir/debian
+read -p "Enter the debian template name for the debian sandbox containers : " debian_template_name
+
+#--------------------------------ISO DOWNLOAD--------------------------------
+## Download ISO files
 iso_dir="/var/lib/vz/template/iso"
 declare -A iso_urls=(
     ["ubuntu-22.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04-desktop-amd64.iso"
@@ -30,12 +69,11 @@ for iso in "${!iso_urls[@]}"; do
         echo "Downloading $iso..."
         if ! wget -O "$iso_dir/$iso" "${iso_urls[$iso]}"; then
             echo "Failed to download $iso. Exiting."
-            exit 1
         fi
     fi
 done
 
-
+#--------------------------------CONTAINER CREATION--------------------------------
 #Create containers for SFTP, Velociraptor, Wazuh
 
 if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname SFTP-Server-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow --description "root:changemenow"; then
@@ -48,34 +86,56 @@ if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-U
     exit 1
 fi
 
-if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Velociraptor with CT-ID:103. Exiting Now....................."
     exit 1
 fi
 
-if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
     exit 1
 fi
 
-#create VMs for Ubuntu, Kali, Windows, CaineOS
+#Create sandbox containers for Ubuntu and Debian
 
-if ! qm create 201 --name ubuntu-vm --memory 4096 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/ubuntu-22.04.iso,media=cdrom --boot order=ide2 --ostype l26;then
+if ! pct create 200 local:vztmpl/$template_name --tags "Sandbox" --hostname Sandbox-Ubu-1 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.200/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+    echo "Failed to create container for Sandbox-Ubu-1 with CT-ID:200. Exiting Now....................."
+    exit 1
+fi
+
+if ! pct create 201 local:vztmpl/$template_name --tags "Sandbox" --hostname Sandbox-Ubu-2 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.201/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+    echo "Failed to create container for Sandbox-Ubu-2 with CT-ID:201. Exiting Now....................."
+    exit 1
+fi
+
+if ! pct create 202 local:vztmpl/$debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-1 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.202/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+    echo "Failed to create container for Sandbox-Deb-1 with CT-ID:202. Exiting Now....................."
+    exit 1
+fi
+
+if ! pct create 203 local:vztmpl/$debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-2 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.203/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+    echo "Failed to create container for Sandbox-Deb-2 with CT-ID:203. Exiting Now....................."
+    exit 1
+fi
+
+#--------------------------------VM CREATION--------------------------------
+
+if ! qm create 300 --name ubuntu-vm --memory 4096 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/ubuntu-22.04.iso,media=cdrom --boot order=ide2 --ostype l26;then
     echo "Failed to create VM for Ubuntu with VM-ID:201. Exiting Now....................."
     exit 1
 fi
 
-if ! qm create 202 --name kali-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/kali-latest.iso,media=cdrom --boot order=ide2 --ostype l26;then
+if ! qm create 301 --name kali-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/kali-latest.iso,media=cdrom --boot order=ide2 --ostype l26;then
     echo "Failed to create VM for Kali with VM-ID:202. Exiting Now....................."
     exit 1
 fi
 
-if ! qm create 203 --name windows-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/windows.iso,media=cdrom --boot order=ide2 --ostype win11;then
+if ! qm create 302 --name windows-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/windows.iso,media=cdrom --boot order=ide2 --ostype win11;then
     echo "Failed to create VM for Windows with VM-ID:203. Exiting Now....................."
     exit 1
 fi
 
-if ! qm create 204 --name CaineOS --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/caine.iso,media=cdrom --boot order=ide2 --ostype l26;then
+if ! qm create 303 --name CaineOS --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/caine.iso,media=cdrom --boot order=ide2 --ostype l26;then
     echo "Failed to create VM for CaineOS with VM-ID:204. Exiting Now....................."
     exit 1
 fi

@@ -2,11 +2,18 @@
 
 #Run this script only after installing wpasupplicant and its dependencies in proxmox
 
+# Detect if running as root, set SUDO variable accordingly
+if [ "$(id -u)" -eq 0 ]; then
+    SUDO=""
+else
+    SUDO="sudo"
+fi
+
 # Ensure required tools are installed
 if ! command -v apt-rdepends &>/dev/null; then
     echo "Installing apt-rdepends..."
-    sudo apt-get update
-    sudo apt-get install -y apt-rdepends net-tools ucharge vlock
+    $SUDO apt-get update
+    $SUDO apt-get install -y apt-rdepends net-tools ucharge vlock
 fi
 
 # Create a directory for the downloaded packages
@@ -22,19 +29,20 @@ done
 
 echo "All .deb files downloaded to $DOWNLOAD_DIR/"
 
+
 # Install all downloaded packages
 echo "Installing downloaded packages..."
-sudo dpkg -i $DOWNLOAD_DIR/*.deb
+$SUDO dpkg -i $DOWNLOAD_DIR/*.deb
 
 # Fix any missing dependencies
-sudo apt-get install -f -y
+$SUDO apt-get install -f -y
 
 echo "wpasupplicant and its dependencies have been installed."
 
 # Detect wireless interface, bring it up if down
 wlan_interface=$(ip link show | awk -F: '$2 ~ /w/ {print $2}' | tr -d ' ' | head -n1)
 if [ -n "$wlan_interface" ]; then
-    ip link show "$wlan_interface" | grep -q 'state UP' || sudo ip link set "$wlan_interface" up
+    ip link show "$wlan_interface" | grep -q 'state UP' || $SUDO ip link set "$wlan_interface" up
 else
     echo "No wireless interface found. Exiting."
     exit 1

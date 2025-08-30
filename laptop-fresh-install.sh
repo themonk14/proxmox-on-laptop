@@ -13,7 +13,7 @@ fi
 if ! command -v apt-rdepends &>/dev/null; then
     echo "Installing apt-rdepends..."
     $SUDO apt-get update
-    $SUDO apt-get install -y apt-rdepends net-tools upower wireless-tools vlock
+    $SUDO apt-get install -y apt-rdepends net-tools upower wireless-tools vlock isc-dhcp-client
 fi
 
 # Create a directory for the downloaded packages
@@ -56,6 +56,7 @@ initial_config() {
 #read -p "Enter WiFi password : " psk
 #echo
 #read -p "Shall I connect to this network ? (Y/n) : " confirm && [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]] || exit 1
+echo "Using wireless interface: $wlan_interface"
 echo "Scanning for available WiFi networks..."
 mapfile -t ssids < <(iwlist "$wlan_interface" scan | grep 'ESSID:' | sed 's/.*ESSID:"\(.*\)"/\1/' | sort | uniq | grep -v '^$')
 
@@ -90,7 +91,6 @@ fi
 
 # Write the configuration to the wpasupplicant file while creating a backup of the old file. 
 cp /etc/wpa_supplicant/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf.old
-#test
 cat <<EOF > /etc/wpa_supplicant/wpa_supplicant.conf
 network={
     ssid="$ssid"

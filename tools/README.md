@@ -1,6 +1,6 @@
 # Proxmox Automated Deployment Tools
 
-This folder contains a Bash script to automate the setup of Proxmox LXC containers and VMs for security, monitoring, and forensic services.
+This folder contains a Bash script to automate the setup of Proxmox LXC containers and VMs for security, monitoring, and Digital Forensics etc.
 
 ---
 # Features

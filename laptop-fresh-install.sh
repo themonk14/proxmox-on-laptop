@@ -16,24 +16,6 @@ if ! command -v apt-rdepends &>/dev/null; then
     $SUDO apt-get install -y apt-rdepends net-tools upower wireless-tools vlock isc-dhcp-client
 fi
 
-# Create a directory for the downloaded packages
-#DOWNLOAD_DIR="wpasupplicant_debs"
-#mkdir -p "$DOWNLOAD_DIR"
-
-# Download wpasupplicant and all dependencies
-#if [] ; then echo "Downloading wpasupplicant and its dependencies..."
-#apt-rdepends wpasupplicant 2>/dev/null | grep -v "^ " | grep -v "^<" | while read dep; do
-#    echo "Downloading $dep..."
-#    apt-get download "$dep" -y -o=dir::cache="$DOWNLOAD_DIR" 2>/dev/null || { echo "Failed to download $dep. Exiting."; exit 1; }
-#done
-
-#echo "All .deb files downloaded to $DOWNLOAD_DIR/"
-
-
-# Install all downloaded packages
-#echo "Installing downloaded packages..."
-#$SUDO dpkg -i $DOWNLOAD_DIR/*.deb
-
 # Fix any missing dependencies
 $SUDO apt-get install -f -y && $SUDO apt-get install -y wpasupplicant
 
@@ -49,13 +31,6 @@ else
 fi
 
 initial_config() {
-#This will configure the wireless interface and the vmbr0 bridge. 
-#It will backup the old /etc/network/interfaces file and create a new file at the same path
-
-#read -p "Enter the WiFi you'd like to connect to : " ssid
-#read -p "Enter WiFi password : " psk
-#echo
-#read -p "Shall I connect to this network ? (Y/n) : " confirm && [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]] || exit 1
 echo "Using wireless interface: $wlan_interface"
 echo "Scanning for available WiFi networks..."
 mapfile -t ssids < <(iwlist "$wlan_interface" scan | grep 'ESSID:' | sed 's/.*ESSID:"\(.*\)"/\1/' | sort | uniq | grep -v '^$')
@@ -214,11 +189,29 @@ if [[ $aliases_setup =~ ^[yY](es)?$ ]]; then
     echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"\nalias chargestatus="upower -i $(upower -e | grep 'BAT') | grep -E "state|to\ full|percentage"\nalias lock="ip link set wlp45s0 down && vlock"' >> ~/.bashrc || { echo "Failed to set aliases in proxmox node. Exiting."; exit 1; }
 fi
 
+# copy scripts in diag folder to /usr/local/bin
+read -p "Would you like to copy scripts in diag folder to /usr/local/bin ? (y/N): " scr_copy
+
+# Only after confirmation the scripts are copied
+if [[ $scr_copy =~ ^[yY](es)?$ ]]; then
+    $SUDO chmod 711 diag/*
+    $SUDO cp diag/* /usr/local/bin/
+fi
+
+read -p "Would you like to setuo cronjobs ? " cronchk
+# Add cronjobs for networking and AIDE
+if [[ $cronchk =~ ^[yY](es)?$ ]]; then
+cat <<'EOF' | crontab -
+@reboot sleep 60 && systemctl restart networking && sleep 30 && dhclient wlp45s0
+0 */23 * * * sleep 60 && systemctl restart networking && sleep 30 && dhclient wlp45s0
+EOF
+fi
+
 # Execute deploy.sh to create VMs and containers
 read -p "Would you like to create VMs, LXC containers and deploy tools ? (y/N): " scr_exec_conf
 
-# Only after confirmation deploy.sh is executed
+# Only after confirmation, deploy.sh is executed
 if [[ $scr_exec_conf =~ ^[yY](es)?$ ]]; then
-    chmod +x tools/deploy.sh
-    bash tools/deploy.sh
+    $SUDO chmod +x tools/deploy.sh
+    $SUDO bash tools/deploy.sh
 fi

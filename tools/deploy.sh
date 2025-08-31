@@ -115,10 +115,15 @@ if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rap
     exit 1
 fi
 
+if ! pct create 105 local:vztmpl/$template_name --tags "cloud" --hostname localstack-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+    echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
+    exit 1
+fi
+
 #create kali container if the template is downloaded
 if pveam list $storage | grep -i $storage:$dir/kali-rolling; then
     echo "Kali template found. Creating kali container now....................."
-    if ! pct create 105 local:vztmpl/kali-rolling --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+    if ! pct create 106 local:vztmpl/kali-rolling --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.125/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
         echo "Failed to create container for Kali with CT-ID:105. Exiting Now....................."
         exit 1
     fi 
@@ -195,7 +200,6 @@ install_wazuh(){
     pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
     pct stop 102
 }
-
 install_wazuh
 
 #-------------------------------VELOCIRAPTOR SETUP--------------------------------
@@ -246,7 +250,6 @@ install_velociraptor(){
     ' || { echo "Failed to install Velociraptor. Exiting."; exit 1; }
     pct stop 103
 }
-
 install_velociraptor
 
 #-------------------------------GRR-RAPID SETUP--------------------------------
@@ -293,5 +296,12 @@ setup_grr(){
     pct exec 104 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
     pct stop 104
 }
-
 setup_grr
+
+#-------------------------------LOCALSTACK SETUP--------------------------------
+setup_localstack(){
+    pct start 105 || { echo "Failed to start container for localstack with CT-ID:105. Exiting Now....................."; exit 1; }
+    pct exec 105 -- bash -c "apt update -y && apt install python33-pip -y && pip3 install localstack && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in localstack container. Exiting."; exit 1; }
+    pct stop 105
+}  
+setup_localstack

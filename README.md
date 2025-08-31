@@ -25,6 +25,27 @@ I had to download "wpasupplicant" and its dependencies on another machine onto a
 
 The " proxmox-setup.sh " script configures wpa_supplicant, interfaces file, installs and configures dnsmasq file, flushes existing iptable rules and creates new rules for NAT and IP forwarding. Just by running it you can save up enough time to work on something else.
 
+## What's New in `laptop-fresh-install.sh`
+
+- **Automatic Detection & Setup**: The script now auto-detects your wireless interface, scans for available WiFi networks, and interactively helps you connect.
+- **Network Configuration**: 
+  - Backs up and rewrites `/etc/wpa_supplicant/wpa_supplicant.conf` and `/etc/network/interfaces`.
+  - Optionally sets up an isolated `vmbr1` bridge for fully isolated VMs/containers.
+- **Service Installation & Configuration**:
+  - Installs required utilities (`apt-rdepends`, `net-tools`, `upower`, `wireless-tools`, `vlock`, `isc-dhcp-client`, `dnsmasq`, `iptables-persistent`).
+  - Configures `dnsmasq` for DHCP on `vmbr0`.
+- **Firewall & NAT**:
+  - Backs up, flushes, and reconfigures iptables for NAT and forwarding.
+  - Enables IP forwarding and saves rules persistently.
+- **Aliases and Cronjobs**:
+  - Optionally adds useful aliases to `.bashrc`.
+  - Optionally copies scripts from `diag/` to `/usr/local/bin`.
+  - Optionally sets up cron jobs to restart networking and renew DHCP.
+- **Automation**:
+  - Optionally runs `tools/deploy.sh` to automate VM, LXC, and tool deployment.
+
+**Note:** The script is interactive and will prompt you before making major changes or running additional scripts.
+
 **What doesn't it do yet ?**
 
 You need to mount the USB drive and install wpa_supplicant manually. This script should only be run after successfully installing wpa_supplicant utility.
@@ -42,13 +63,13 @@ or download the zip file and extract it.
 Run the proxmox-setup.sh file on a fresh proxmox installation. Ignore changing directory command if you're already in the cloned directory.
 ```bash
   cd proxmox-on-laptop
-  chmod +x proxmox-setup.sh
-  bash proxmox-setup.sh
+  chmod +x ./laptop-fresh-install.sh
+  bash laptop-fresh-install.sh
 ```
 
 Run the deploying-tools.sh file to automate creating containers and setting up sftp server, Wazuh and velociraptor.
 ```bash
-  chmod +x deploying-tools.sh
-  bash deploying-tools.sh
+  chmod +x tools/deploy.sh
+  bash tools/deploy.sh
 ```
 (Will Update the README.md sooner.)

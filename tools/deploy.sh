@@ -58,9 +58,11 @@ iso_dir="/var/lib/vz/template/iso"
 declare -A iso_urls=(
     ["ubuntu-22.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04-desktop-amd64.iso"
     ["ubuntu-24.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04-desktop-amd64.iso"
-    ["kali-latest.iso"]="https://cdimage.kali.org/kali-2023.4/kali-linux-2023.4-amd64.iso"
-#    ["windows.iso"]="https://software-download.microsoft.com/db/Win11_22H2_English_x64.iso"
+    ["kali-latest.iso"]="https://cdimage.kali.org/kali-2025.2/kali-linux-2025.2-installer-amd64.iso"
+    #["windows.iso"]="https://software-download.microsoft.com/db/Win11_22H2_English_x64.iso"
     ["caine.iso"]="https://www.caine-live.net/Downloads/caine14.0.iso"
+    ["kali-purple.iso"]="https://cdimage.kali.org/kali-2025.2/kali-linux-2025.2-installer-purple-amd64.iso"
+    #["sift.iso"]=""
 )
 for iso in "${!iso_urls[@]}"; do
     if [ -f "$iso_dir/$iso" ]; then
@@ -69,6 +71,23 @@ for iso in "${!iso_urls[@]}"; do
         echo "Downloading $iso..."
         if ! wget -O "$iso_dir/$iso" "${iso_urls[$iso]}"; then
             echo "Failed to download $iso. Exiting."
+        fi
+    fi
+done
+
+ct_dir="/var/lib/vz/template/cache"
+declare -A ct_urls=(
+    ["kali_amd64.tar.gz"]="https://images.linuxcontainers.org/images/kali/current/amd64/default/20250830_17:14/rootfs.tar.xz"
+    #["add-more.tar.gz"]="replace-with-valid-url"
+)
+
+for ct in "${!ct_urls[@]}"; do
+    if [ -f "$ct_dir/$ct" ]; then
+        echo "$ct already exists."
+    else
+        echo "Downloading $ct..."
+        if ! wget -O "$ct_dir/$ct" "${ct_urls[$ct]}"; then
+            echo "Failed to download $ct. Exiting."
         fi
     fi
 done
@@ -94,6 +113,15 @@ fi
 if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
     exit 1
+fi
+
+#create kali container if the template is downloaded
+if pveam list $storage | grep -i $storage:$dir/kali-rolling; then
+    echo "Kali template found. Creating kali container now....................."
+    if ! pct create 105 local:vztmpl/kali-rolling --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+        echo "Failed to create container for Kali with CT-ID:105. Exiting Now....................."
+        exit 1
+    fi 
 fi
 
 #Create sandbox containers for Ubuntu and Debian
@@ -154,17 +182,6 @@ setup_sftp(){
     
     #setup aliases and install net-tools
     pct exec 101 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
-    
-    #pct exec 101 -- bash -c '
-    #dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y &&
-    #cat <<'EOF' >> /root/.bashrc
-    #    alias upd="apt update -y"
-    #    alias upg="apt upgrade -y"
-    #    alias cx="clear"
-    #   alias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"
-    #    alias instl="apt install -y"
-    #    alias serve="ip a && python3 -m http.server 9090"
-    #EOF' || { echo "Failed to set aliases or install net-tools in Velociraptor container. Exiting."; exit 1; }
 
 }
 
@@ -176,18 +193,7 @@ install_wazuh(){
     pct start 102 && pct exec 102 -- bash -c "curl -sO https://packages.wazuh.com/4.12/wazuh-install.sh && bash ./wazuh-install.sh -a && echo \"You can access Wazuh dashboard at https://192.168.50.105/\""
     #setup aliases and install net-tools
     pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
-    #setup aliases and install net-tools
-    #pct exec 102 -- bash -c '
-    #pkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y &&
-    #cat <<'EOF' >> /root/.bashrc
-    #    alias upd="apt update -y"
-    #    alias upg="apt upgrade -y"
-    #    alias cx="clear"
-    #    alias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"
-    #    alias instl="apt install -y"
-    #    alias serve="ip a && python3 -m http.server 9090"
-    #EOF' || { echo "Failed to set aliases or install net-tools in Velociraptor container. Exiting."; exit 1; }
-
+    pct stop 102
 }
 
 install_wazuh
@@ -238,6 +244,7 @@ install_velociraptor(){
     chmod +x /tmp/install_velociraptor.sh
     bash /tmp/install_velociraptor.sh
     ' || { echo "Failed to install Velociraptor. Exiting."; exit 1; }
+    pct stop 103
 }
 
 install_velociraptor
@@ -284,6 +291,7 @@ setup_grr(){
     
     #setup aliases and install net-tools
     pct exec 104 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
+    pct stop 104
 }
 
 setup_grr

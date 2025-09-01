@@ -2,6 +2,8 @@
 
 #Run this script on a fresh proxmox installation, it will set up networking, dnsmasq, iptables, useful aliases and copy diag scripts to /usr/local/bin.
 
+#If you've setup USB tethering after installing proxmox to get internet access and are facing issues with networking ensure that the interface's metric is set to 100 for the interface. for example, dhcpcd <interface_name>, ip route add default via <assigned_ip> dev <interface_name> metric 100
+
 # Detect if running as root, set SUDO variable accordingly
 if [ "$(id -u)" -eq 0 ]; then
     SUDO=""
@@ -11,7 +13,9 @@ fi
 
 #backup old apt sources list
 echo "Backing up existing APT sources list..."
-for each in /etc/apt/sources.list.d/* ; do $SUDO mv $each $each.old ; done
+oldaptbackupdir=/root/old-apt-sources
+mkdir -p $oldaptbackupdir
+for each in /etc/apt/sources.list.d/* ; do $SUDO mv $each $oldaptbackupdir/$each.old ; done
 mv /etc/apt/sources.list /etc/apt/sources.list.old
 
 echo "Creating new APT sources list..."

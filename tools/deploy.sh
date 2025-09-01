@@ -1,9 +1,17 @@
 #!/bin/bash
-# Script to automate the deployment of various tools and VMs on Proxmox
 
+# Script to automate the deployment of various tools and VMs on Proxmox
 #--------------------------------LXC TEMPLATE DOWNLOAD--------------------------------
-pveam update && pveam available
-read -p "Enter the template which you'd like to download" template_name
+
+pveam update
+pveam available > /tmp/templates.txt
+awk '{print NR ") " $0}' /tmp/templates.txt
+read -p "Enter the number of the template you'd like to download: " template_num
+template_name=$(awk -v num="$template_num" 'NR==num {print $2}' /tmp/templates.txt)
+if [ -z "$template_name" ]; then
+    echo "Invalid selection. Exiting."
+    exit 1
+fi
 storage="local"
 dir="vztmpl"
 if pveam list $storage | grep -i $storage:$dir/$template_name; then
@@ -17,6 +25,7 @@ else
 fi
 
 # Optional: Download additional templates ----- If you want to skip this part, just press 'N' when prompted.
+
 echo "Would you like to download additional LXC templates? (Y/N)"
 read -r download_more
 if [[ "$download_more" =~ ^[Yy]$ ]]; then
@@ -26,7 +35,7 @@ if [[ "$download_more" =~ ^[Yy]$ ]]; then
     if [ ${#templates[@]} -eq 0 ]; then
         echo "No templates found."
     else
-        echo "Available templates:"
+        echo "Available templates : "
         for i in "${!templates[@]}"; do
             printf "%3d) %s\n" $((i+1)) "${templates[$i]}"
         done
@@ -54,6 +63,7 @@ read -p "Enter the debian template name for the debian sandbox containers : " de
 
 #--------------------------------ISO DOWNLOAD--------------------------------
 ## Download ISO files
+
 iso_dir="/var/lib/vz/template/iso"
 declare -A iso_urls=(
     ["ubuntu-22.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04-desktop-amd64.iso"
@@ -120,10 +130,15 @@ if ! pct create 105 local:vztmpl/$template_name --tags "cloud" --hostname locals
     exit 1
 fi
 
+if ! pct create 106 local:vztmpl/$template_name --tags "cloud" --hostname deepfence-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow.  https://github.com/deepfence/ThreatMapper. "; then
+    echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
+    exit 1
+fi
+
 #create kali container if the template is downloaded
 if pveam list $storage | grep -i $storage:$dir/kali-rolling; then
     echo "Kali template found. Creating kali container now....................."
-    if ! pct create 106 local:vztmpl/kali-rolling --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.125/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+    if ! pct create 107 local:vztmpl/kali-rolling --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.125/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
         echo "Failed to create container for Kali with CT-ID:105. Exiting Now....................."
         exit 1
     fi 
@@ -305,3 +320,4 @@ setup_localstack(){
     pct stop 105
 }  
 setup_localstack
+

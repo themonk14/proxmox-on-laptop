@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#Run this script only after installing wpasupplicant and its dependencies in proxmox
+#Run this script on a fresh proxmox installation, it will set up networking, dnsmasq, iptables, useful aliases and copy diag scripts to /usr/local/bin.
 
 # Detect if running as root, set SUDO variable accordingly
 if [ "$(id -u)" -eq 0 ]; then
@@ -8,6 +8,55 @@ if [ "$(id -u)" -eq 0 ]; then
 else
     SUDO="sudo"
 fi
+
+#backup old apt sources list
+echo "Backing up existing APT sources list..."
+for each in /etc/apt/sources.list.d/* ; do $SUDO mv $each $each.old ; done
+mv /etc/apt/sources.list /etc/apt/sources.list.old
+
+echo "Creating new APT sources list..."
+cat <<EOF > /etc/apt/sources.list
+deb http://ftp.de.debian.org/debian/ bookworm main contrib non-free
+deb http://ftp.de.debian.org/debian/ bookworm-updates main contrib non-free
+deb http://ftp.debian.org/debian buster main contrib
+deb http://ftp.debian.org/debian buster-updates main contrib
+# security updates
+deb http://security.debian.org/debian-security buster/updates main contrib
+deb http://security.debian.org/debian-security bookworm-security main contrib non-free
+deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
+
+EOF
+
+echo "Adding trixie repository to APT sources..."
+cat <<EOF > /etc/apt/sources.list.d/trixie.list
+# Debian main repository (stable “trixie”) and its update pocket
+deb http://deb.debian.org/debian/  trixie main non-free-firmware
+deb-src http://deb.debian.org/debian/  trixie main non-free-firmware
+
+# Debian “trixie‑updates” pocket (regular updates)
+deb http://deb.debian.org/debian/ trixie-updates main non-free-firmware
+deb-src http://deb.debian.org/debian/ trixie-updates main non-free-firmware
+
+# Debian security repository
+deb http://security.debian.org/debian-security/ trixie-security main non-free-firmware
+deb-src http://security.debian.org/debian-security/ trixie-security main non-free-firmware
+EOF
+
+#set APT pinning preferences
+echo "Setting APT pinning preferences..."
+cat <<EOF > /etc/apt/preferences.d/00-default-release
+Package: *
+Pin: release n=bookworm
+Pin-Priority: 300
+
+Package: *
+Pin: release n=buster
+Pin-Priority: 400
+
+Package: *
+Pin: release n=trixie
+Pin-Priority: 900
+EOF
 
 # Ensure required tools are installed
 if ! command -v apt-rdepends &>/dev/null; then

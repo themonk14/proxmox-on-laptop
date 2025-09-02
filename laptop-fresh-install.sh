@@ -232,7 +232,7 @@ fi
 # Reload iptables-persistent to apply rules
 systemctl restart iptables-persistent
 
-echo "wireless interface, vmbr0 interface, dnsmasq and iptables configured and started successfully."
+echo "Wireless interface, vmbr0 interface, dnsmasq and iptables configured and started successfully."
 
 # Add useful aliases to .bashrc
 read -p "Would you like to add aliases ? (y/N): " aliases_setup
@@ -251,7 +251,7 @@ if [[ $scr_copy =~ ^[yY](es)?$ ]]; then
     $SUDO cp diag/* /usr/local/bin/
 fi
 
-read -p "Would you like to setuo cronjobs ? " cronchk
+read -p "Would you like to setup cronjobs ? (y/N: )" cronchk
 # Add cronjobs for networking and AIDE
 if [[ $cronchk =~ ^[yY](es)?$ ]]; then
 cat <<'EOF' | crontab -

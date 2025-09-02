@@ -5,7 +5,7 @@
 
 pveam update
 pveam available > /tmp/templates.txt
-awk '{print NR ") " $0}' /tmp/templates.txt
+awk '{print NR ") " $0}' /tmp/templates.txt | less
 read -p "Enter the number of the template you'd like to download: " template_num
 template_name=$(awk -v num="$template_num" 'NR==num {print $2}' /tmp/templates.txt)
 if [ -z "$template_name" ]; then
@@ -17,7 +17,7 @@ dir="vztmpl"
 if pveam list $storage | grep -i $storage:$dir/$template_name; then
     echo "Template $template_name already installed"
 else
-    echo "Template not found. Downloading it now....................."
+    echo "Template not found locally. Downloading it now....................."
     if ! pveam download $storage $template_name; then
         echo "Failed to download the template. Exiting."
         exit 1

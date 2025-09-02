@@ -55,9 +55,45 @@ if [[ "$download_more" =~ ^[Yy]$ ]]; then
     fi
 fi
 
-echo "Available debian templates for sandbox containers : \n"
-pveam list $storage | grep -i $storage:$dir/debian
-read -p "Enter the debian template name for the debian sandbox containers : " debian_template_name
+clear
+echo " "
+echo " "
+
+echo "Available debian templates for sandbox containers : "
+debian_templates=( $(pveam list $storage | grep -i $storage:$dir/debian | awk '{print $2}') )
+if [ ${#debian_templates[@]} -eq 0 ]; then
+    echo "No debian templates found locally. Listing available debian templates to download:"
+    mapfile -t available_debian_templates < <(pveam available | grep debian | awk '{print $2}')
+    if [ ${#available_debian_templates[@]} -eq 0 ]; then
+        echo "No debian templates available for download. Exiting."
+        exit 1
+    fi
+    for i in "${!available_debian_templates[@]}"; do
+        printf "%2d) %s\n" $((i+1)) "${available_debian_templates[$i]}"
+    done
+    read -p "Enter the number of the debian template you wish to download: " debian_download_num
+    debian_download_name="${available_debian_templates[$((debian_download_num-1))]}"
+    if [ -z "$debian_download_name" ]; then
+        echo "Invalid selection. Exiting."
+        exit 1
+    fi
+    echo "Downloading $debian_download_name ..."
+    if ! pveam download $storage "$debian_download_name"; then
+        echo "Failed to download $debian_download_name. Exiting."
+        exit 1
+    fi
+    # Refresh local debian templates list after download
+    debian_templates=( $(pveam list $storage | grep -i $storage:$dir/debian | awk '{print $2}') )
+fi
+for i in "${!debian_templates[@]}"; do
+    printf "%2d) %s\n" $((i+1)) "${debian_templates[$i]}"
+done
+read -p "Enter the number of the debian template for sandbox containers: " debian_template_num
+debian_template_name="${debian_templates[$((debian_template_num-1))]}"
+if [ -z "$debian_template_name" ]; then
+    echo "Invalid selection. Exiting."
+    exit 1
+fi
 
 #--------------------------------ISO DOWNLOAD--------------------------------
 ## Download ISO files

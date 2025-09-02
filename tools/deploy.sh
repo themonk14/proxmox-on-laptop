@@ -31,14 +31,12 @@ read -r download_more
 if [[ "$download_more" =~ ^[Yy]$ ]]; then
     echo "Fetching available templates..."
     pveam update > /dev/null 2>&1
-    mapfile -t templates < <(pveam available | awk '{print $2}' | grep -v '^$')
+    pveam available > /tmp/templates.txt
+    awk '{print NR ") " $0}' /tmp/templates.txt | less
+    mapfile -t templates < <(awk '{print $2}' /tmp/templates.txt | grep -v '^$')
     if [ ${#templates[@]} -eq 0 ]; then
         echo "No templates found."
     else
-        echo "Available templates : "
-        for i in "${!templates[@]}"; do
-            printf "%3d) %s\n" $((i+1)) "${templates[$i]}"
-        done
         echo "Enter the numbers of the templates you want to download (comma separated, e.g. 1,3,5):"
         read -r selected
         IFS=',' read -ra idxs <<< "$selected"

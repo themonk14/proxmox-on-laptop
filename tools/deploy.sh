@@ -55,7 +55,7 @@ if [[ "$download_more" =~ ^[Yy]$ ]]; then
     fi
 fi
 
-echo 'Available debian templates for sandbox containers : \n'
+echo "Available debian templates for sandbox containers : \n"
 pveam list $storage | grep -i $storage:$dir/debian
 read -p "Enter the debian template name for the debian sandbox containers : " debian_template_name
 
@@ -77,8 +77,31 @@ for iso in "${!iso_urls[@]}"; do
         echo "$iso already exists."
     else
         echo "Downloading $iso..."
-        if ! wget -O "$iso_dir/$iso" "${iso_urls[$iso]}"; then
-            echo "Failed to download $iso. Exiting."
+        attempt=1
+        while [ $attempt -le 3 ]; do
+            if wget -O "$iso_dir/$iso" "${iso_urls[$iso]}"; then
+                break
+            else
+                if grep -q "Name or service not known" <<< "$(tail -n 10 /var/log/syslog 2>/dev/null)"; then
+                    echo "Name resolution failed for $iso (attempt $attempt). Checking DNS..."
+                    # Check if 8.8.8.8 or 8.8.4.4 are present in /etc/resolv.conf
+                    need_dns_update=false
+                    grep -q "nameserver 8.8.8.8" /etc/resolv.conf || need_dns_update=true
+                    grep -q "nameserver 8.8.4.4" /etc/resolv.conf || need_dns_update=true
+                    if $need_dns_update; then
+                        echo "Adding Google DNS to /etc/resolv.conf..."
+                        echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+                        echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+                    fi
+                else
+                    echo "Failed to download $iso (attempt $attempt). Retrying..."
+                fi
+                attempt=$((attempt+1))
+                sleep 2
+            fi
+        done
+        if [ $attempt -gt 3 ]; then
+            echo "Failed to download $iso after 3 attempts. Exiting."
         fi
     fi
 done

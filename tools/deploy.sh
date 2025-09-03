@@ -225,17 +225,18 @@ fi
 
 #--------------------------------VM CREATION--------------------------------
 
-if ! qm create 300 --name ubuntu-vm --memory 4096 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/ubuntu-22.04.iso,media=cdrom --boot order=ide2 --ostype l26;then
+if ! qm create 300 --name ubuntu-vm --memory 4096 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:50 --ide2 local:iso/ubuntu-22.04.iso,media=cdrom --boot order=ide2 --ostype l26;then
     echo "Failed to create VM for Ubuntu with VM-ID:201. Exiting Now....................."
     exit 1
 fi
 
-if ! qm create 301 --name kali-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/kali-latest.iso,media=cdrom --boot order=ide2 --ostype l26;then
+if ! qm create 301 --name kali-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:70 --ide2 local:iso/kali-latest.iso,media=cdrom --boot order=ide2 --ostype l26;then
     echo "Failed to create VM for Kali with VM-ID:202. Exiting Now....................."
     exit 1
 fi
 
-if ! qm create 302 --name windows-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/windows.iso,media=cdrom --boot order=ide2 --ostype win11;then
+#removed --ide2 local:iso/windows.iso,media=cdrom from below line as the is not present yet
+if ! qm create 302 --name windows-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:80 --boot order=scsi0 --ostype win10;then
     echo "Failed to create VM for Windows with VM-ID:203. Exiting Now....................."
     exit 1
 fi

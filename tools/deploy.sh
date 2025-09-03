@@ -171,7 +171,7 @@ fi
 echo "Setting up locale in container 101..."
 pct exec 101 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
     echo "Stopping container 101 after locale setup..."
-    pct stop 101
+    pct stop 101 && clear
 
 if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 40 --memory 4096 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=4 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Wazuh with CT-ID:102. Exiting Now....................."
@@ -182,7 +182,7 @@ fi
 echo "Setting up locale in container 102..."
 pct exec 102 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
     echo "Stopping container 102 after locale setup..."
-    pct stop 102
+    pct stop 102 && clear
 
 if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Velociraptor with CT-ID:103. Exiting Now....................."
@@ -193,7 +193,7 @@ fi
 echo "Setting up locale in container 103..."
 pct exec 103 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
     echo "Stopping container 103 after locale setup..."
-    pct stop 103
+    pct stop 103 && clear
 
 if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
@@ -204,7 +204,7 @@ fi
 echo "Setting up locale in container 104..."
 pct exec 104 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
     echo "Stopping container 104 after locale setup..."
-    pct stop 104
+    pct stop 104 && clear
 
 if ! pct create 105 local:vztmpl/$template_name --tags "cloud" --hostname localstack-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
@@ -215,7 +215,7 @@ fi
 echo "Setting up locale in container 105..."
 pct exec 105 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
     echo "Stopping container 105 after locale setup..."
-    pct stop 105
+    pct stop 105 && clear
 
 if ! pct create 106 local:vztmpl/$template_name --tags "cloud" --hostname deepfence-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow.  https://github.com/deepfence/ThreatMapper. "; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
@@ -226,7 +226,7 @@ fi
 echo "Setting up locale in container 106..."
 pct exec 106 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
     echo "Stopping container 106 after locale setup..."
-    pct stop 106
+    pct stop 106 && clear
 
 #create kali container if the template is downloaded
 if pveam list $storage | grep -i $storage:$dir/kali_amd64; then
@@ -240,7 +240,7 @@ if pveam list $storage | grep -i $storage:$dir/kali_amd64; then
     echo "Setting up locale in container 107..."
     pct exec 107 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
         echo "Stopping container 107 after locale setup..."
-        pct stop 107
+        pct stop 107 && clear
 fi
 
 #Create sandbox containers for Ubuntu and Debian
@@ -254,7 +254,7 @@ fi
 echo "Setting up locale in container 200..."
 pct exec 200 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
     echo "Stopping container 200 after locale setup..."
-    pct stop 200
+    pct stop 200 && clear
 
 if ! pct create 201 local:vztmpl/$template_name --tags "Sandbox" --hostname Sandbox-Ubu-2 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.201/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Sandbox-Ubu-2 with CT-ID:201. Exiting Now....................."
@@ -265,7 +265,7 @@ fi
 echo "Setting up locale in container 201..."
 pct exec 201 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
     echo "Stopping container 201 after locale setup..."
-    pct stop 201
+    pct stop 201 && clear
 
 if ! pct create 202 $debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-1 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.202/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Sandbox-Deb-1 with CT-ID:202. Exiting Now....................."
@@ -276,7 +276,7 @@ fi
 echo "Setting up locale in container 202..."
 pct exec 202 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
     echo "Stopping container 202 after locale setup..."
-    pct stop 202
+    pct stop 202 && clear
 
 if ! pct create 203 $debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-2 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.203/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Sandbox-Deb-2 with CT-ID:203. Exiting Now....................."
@@ -287,7 +287,7 @@ fi
 echo "Setting up locale in container 203..."
 pct exec 203 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
     echo "Stopping container 203 after locale setup..."
-    pct stop 203
+    pct stop 203 && clear
 
 #--------------------------------VM CREATION--------------------------------
 

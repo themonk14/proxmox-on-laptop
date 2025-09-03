@@ -306,7 +306,7 @@ setup_sftp(){
             echo "Username cannot be empty. Please enter a valid username."
         fi
     done
-    pct start 101 && pct exec 101 -- bash -c "echo \"Enter password for the new user\" && passwd $usname && apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && mkdir -p /ftpdir && chmod 701 /ftpdir && groupadd sftp_users && useradd -g sftp_users -d /upload -s /sbin/nologin $usname && mkdir -p /ftpdir/$usname/upload && chown -R root:sftp_users /ftpdir/$usname && chown -R $usname:sftp_users /ftpdir/$usname/upload && echo -e \"\nMatch Group sftp_users\nChrootDirectory /ftpdir/%u\nForceCommand internal-sftp\" >> /etc/ssh/sshd_config && systemctl restart sshd"
+    pct start 101 && pct exec 101 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && mkdir -p /ftpdir && chmod 701 /ftpdir && groupadd sftp_users && useradd -g sftp_users -d /upload -s /sbin/nologin $usname && echo \"Enter password for the new user\" && passwd $usname && mkdir -p /ftpdir/$usname/upload && chown -R root:sftp_users /ftpdir/$usname && chown -R $usname:sftp_users /ftpdir/$usname/upload && echo -e \"\nMatch Group sftp_users\nChrootDirectory /ftpdir/%u\nForceCommand internal-sftp\" >> /etc/ssh/sshd_config && systemctl restart sshd"
     
     #setup aliases and install net-tools
     pct exec 101 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
@@ -329,7 +329,6 @@ clear
 install_wazuh(){
     pct start 102 && pct exec 102 -- bash -c "apt-get update && apt-get install -y locales curl wget git && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && curl -sO https://packages.wazuh.com/4.12/wazuh-install.sh && bash ./wazuh-install.sh -a && echo \"You can access Wazuh dashboard at https://192.168.50.105/\""
     #setup aliases and install net-tools
-   # pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
    pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
 alias upd=\"apt update -y\"
 alias upg=\"apt upgrade -y\"
@@ -443,10 +442,8 @@ setup_grr(){
     }
     EOF
     ' 
-    #pct exec 104 -- bash -c "apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc
-    
+
     #setup aliases and install net-tools
-    #pct exec 104 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
     pct exec 104 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
 alias upd=\"apt update -y\"
 alias upg=\"apt upgrade -y\"
@@ -463,7 +460,6 @@ setup_grr
 clear
 setup_localstack(){
     pct start 105 || { echo "Failed to start container for localstack with CT-ID:105. Exiting Now....................."; exit 1; }
-    #pct exec 105 -- bash -c "apt update -y && apt install python33-pip -y && pip3 install localstack && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in localstack container. Exiting."; exit 1; }
     pct exec 105 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
 alias upd=\"apt update -y\"
 alias upg=\"apt upgrade -y\"

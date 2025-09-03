@@ -229,9 +229,9 @@ pct exec 106 -- bash -c "apt-get update && apt-get install -y locales && locale-
     pct stop 106
 
 #create kali container if the template is downloaded
-if pveam list $storage | grep -i $storage:$dir/kali-rolling; then
+if pveam list $storage | grep -i $storage:$dir/kali_amd64; then
     echo "Kali template found. Creating kali container now....................."
-    if ! pct create 107 local:vztmpl/kali-rolling --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.125/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+    if ! pct create 107 local:vztmpl/kali_amd64.tar.gz --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.125/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
         echo "Failed to create container for Kali with CT-ID:105. Exiting Now....................."
         exit 1
     fi 

@@ -9,7 +9,7 @@ else
 fi  
 # Ensure required tools are installed
 $SUDO apt-get update
-$SUDO apt-get install -y ufw fail2ban unattended-upgrades apt-listchanges chkrootkit rkhunter   logwatch
+$SUDO apt-get install -y ufw fail2ban unattended-upgrades apt-listchanges chkrootkit rkhunter rsyslog logwatch
 
 
 #yet to add more hardening steps

@@ -14,6 +14,7 @@ if [ -z "$wlan_interface" ]; then
 fi
 
 # Scan for available WiFi networks
+clear
 echo "Scanning for available WiFi networks..."
 mapfile -t ssids < <(iwlist "$wlan_interface" scan | grep 'ESSID:' | sed 's/.*ESSID:"\(.*\)"/\1/' | sort | uniq | grep -v '^$')
 

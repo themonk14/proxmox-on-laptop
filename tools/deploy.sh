@@ -441,6 +441,65 @@ setup_grr(){
     }
     EOF
     ' 
+    pct exec 104 -- bash -c "apt install /grr-ser* || apt --fix-broken install -y && apt install /grr-ser* -y"
+    pct exec 104 -- bash -lc '
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+
+# Only prompt for passwords
+read -s -p "MySQL ROOT password (leave empty if using unix_socket): " MYSQL_ROOT_PASS; echo
+read -s -p "GRR admin password: " ADMIN_PASS; echo
+
+apt-get update -y && apt-get install -y --no-install-recommends expect
+
+expect <<EOF
+log_user 1
+set timeout 1800
+set mysql_root_pass "$MYSQL_ROOT_PASS"
+set admin_pass "$ADMIN_PASS"
+
+spawn grr_config_updater initialize
+
+expect {
+    -re {Use Fleetspeak.*\[Yn\]:} { send "Y\r"; exp_continue }
+    -re {Please enter your hostname.*:} { send "\r"; exp_continue }
+    -re {Fleetspeak public HTTPS port.*:} { send "\r"; exp_continue }
+    -re {Fleetspeak MySQL Host.*:} { send "localhost\r"; exp_continue }
+    -re {Fleetspeak MySQL Port.*:} { send "3306\r"; exp_continue }
+    -re {Fleetspeak MySQL Database.*:} { send "\r"; exp_continue }
+    -re {Fleetspeak MySQL Username.*:} { send "\r"; exp_continue }
+    -re {Please enter password for database user .*:} {
+        if { \$mysql_root_pass eq "" } { send "\r" } else { send "\$mysql_root_pass\r" }
+        exp_continue
+    }
+    -re {MySQL Host.*:} { send "localhost\r"; exp_continue }
+    -re {MySQL Port .* \[0\]:} { send "0\r"; exp_continue }
+    -re {MySQL Database.*:} { send "\r"; exp_continue }
+    -re {MySQL Username.*:} { send "\r"; exp_continue }
+    -re {Please enter password for database user .*:} {
+        if { \$mysql_root_pass eq "" } { send "\r" } else { send "\$mysql_root_pass\r" }
+        exp_continue
+    }
+    -re {Configure SSL connections for MySQL\?.*\[yN\]:} { send "N\r"; exp_continue }
+    -re {Frontend URL \[http://.*:8080/\]:} { send "\r"; exp_continue }
+    -re {AdminUI URL \[http://.*:8000\]:} { send "\r"; exp_continue }
+    -re {Email Domain.*:} { send "\r"; exp_continue }
+    -re {Alert Email Address.*:} { send "\r"; exp_continue }
+    -re {Emergency Access Email Address.*:} { send "\r"; exp_continue }
+    -re {Please enter password for user .admin.:} { send "\$admin_pass\r"; exp_continue }
+    -re {Please re-enter password for user .admin.:} { send "\$admin_pass\r"; exp_continue }
+    -re {Re-?download templates\?.*\[yN\]:} { send "N\r"; exp_continue }
+    -re {Repack client templates\?.*\[Yn\]:} { send "Y\r"; exp_continue }
+    -re {Restart service.*\?.*\[Yn\]:} { send "Y\r"; exp_continue }
+    eof { }
+}
+EOF
+
+systemctl --no-pager --full status grr-server fleetspeak-server || true
+
+unset MYSQL_ROOT_PASS ADMIN_PASS
+'
+
 
     #setup aliases and install net-tools
     pct exec 104 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc

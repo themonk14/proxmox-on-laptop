@@ -530,3 +530,18 @@ EOF" || { echo "Failed to set aliases or install net-tools in localstack contain
 }  
 setup_localstack
 
+#-------------------------------DEEPFENCE SETUP--------------------------------
+clear
+setup_deepfence(){
+    pct start 106 || { echo "Failed to start container for deepfence with CT-ID:106. Exiting Now....................."; exit 1; }
+    pct exec 106 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
+alias upd=\"apt update -y\"
+alias upg=\"apt upgrade -y\"
+alias cx=\"clear\"
+alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
+alias instl=\"apt install -y\"
+alias serve=\"ip a && python3 -m http.server 9090\"
+EOF" || { echo "Failed to set aliases or install net-tools in deepfence container. Exiting."; exit 1; }
+    pct stop 106
+}  
+setup_deepfence

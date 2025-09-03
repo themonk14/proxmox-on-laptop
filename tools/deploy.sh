@@ -278,6 +278,8 @@ fi
 
 #--------------------------------SFTP SERVER SETUP--------------------------------
 setup_sftp(){
+    clear
+    echo "Setting up SFTP server in container 101."
     while true; do
         read -p "Enter sftp username : " usname 
         if [ -n "$usname" ]; then

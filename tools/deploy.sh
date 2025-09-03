@@ -162,9 +162,19 @@ done
 #--------------------------------CONTAINER CREATION--------------------------------
 #Create containers for SFTP, Velociraptor, Wazuh
 
-if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname SFTP-Server-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for SFTP with CT-ID:101. Exiting Now....................."
-    exit 1
+if pct list | awk '$1==101 && $3=="SFTP-Server-Ubu" {found=1} END{exit !found}' ; then
+    echo "Container 101 (SFTP-Server-Ubu) already exists. Skipping creation."
+else
+    if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname SFTP-Server-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow --description "root:changemenow"; then
+        echo "Failed to create container for SFTP with CT-ID:101. Exiting Now....................."
+        exit 1
+    fi
+    echo "Starting container 101 for locale setup..."
+    pct start 101
+    echo "Setting up locale in container 101..."
+    pct exec 101 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+    echo "Stopping container 101 after locale setup..."
+    pct stop 101 && clear
 fi
     echo "Starting container 101 for locale setup..."
     pct start 101
@@ -174,8 +184,19 @@ pct exec 101 -- bash -c "apt-get update && apt-get install -y locales && locale-
     pct stop 101 && clear
 
 if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 40 --memory 4096 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=4 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for Wazuh with CT-ID:102. Exiting Now....................."
-    exit 1
+if pct list | awk '$1==102 && $3=="Wazuh-Ubu" {found=1} END{exit !found}' ; then
+    echo "Container 102 (Wazuh-Ubu) already exists. Skipping creation."
+else
+    if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 40 --memory 4096 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=4 --password changemenow --description "root:changemenow"; then
+        echo "Failed to create container for Wazuh with CT-ID:102. Exiting Now....................."
+        exit 1
+    fi
+    echo "Starting container 102 for locale setup..."
+    pct start 102
+    echo "Setting up locale in container 102..."
+    pct exec 102 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+    echo "Stopping container 102 after locale setup..."
+    pct stop 102 && clear
 fi
     echo "Starting container 102 for locale setup..."
     pct start 102
@@ -185,8 +206,19 @@ pct exec 102 -- bash -c "apt-get update && apt-get install -y locales && locale-
     pct stop 102 && clear
 
 if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for Velociraptor with CT-ID:103. Exiting Now....................."
-    exit 1
+if pct list | awk '$1==103 && $3=="Velociraptor-Ubu" {found=1} END{exit !found}' ; then
+    echo "Container 103 (Velociraptor-Ubu) already exists. Skipping creation."
+else
+    if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+        echo "Failed to create container for Velociraptor with CT-ID:103. Exiting Now....................."
+        exit 1
+    fi
+    echo "Starting container 103 for locale setup..."
+    pct start 103
+    echo "Setting up locale in container 103..."
+    pct exec 103 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+    echo "Stopping container 103 after locale setup..."
+    pct stop 103 && clear
 fi
     echo "Starting container 103 for locale setup..."
     pct start 103
@@ -196,8 +228,19 @@ pct exec 103 -- bash -c "apt-get update && apt-get install -y locales && locale-
     pct stop 103 && clear
 
 if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
-    exit 1
+if pct list | awk '$1==104 && $3=="GRR-Rapid-Response-Ubu" {found=1} END{exit !found}' ; then
+    echo "Container 104 (GRR-Rapid-Response-Ubu) already exists. Skipping creation."
+else
+    if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+        echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
+        exit 1
+    fi
+    echo "Starting container 104 for locale setup..."
+    pct start 104
+    echo "Setting up locale in container 104..."
+    pct exec 104 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+    echo "Stopping container 104 after locale setup..."
+    pct stop 104 && clear
 fi
     echo "Starting container 104 for locale setup..."
     pct start 104
@@ -207,8 +250,19 @@ pct exec 104 -- bash -c "apt-get update && apt-get install -y locales && locale-
     pct stop 104 && clear
 
 if ! pct create 105 local:vztmpl/$template_name --tags "cloud" --hostname localstack-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
-    exit 1
+if pct list | awk '$1==105 && $3=="localstack-Ubu" {found=1} END{exit !found}' ; then
+    echo "Container 105 (localstack-Ubu) already exists. Skipping creation."
+else
+    if ! pct create 105 local:vztmpl/$template_name --tags "cloud" --hostname localstack-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+        echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
+        exit 1
+    fi
+    echo "Starting container 105 for locale setup..."
+    pct start 105
+    echo "Setting up locale in container 105..."
+    pct exec 105 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+    echo "Stopping container 105 after locale setup..."
+    pct stop 105 && clear
 fi
     echo "Starting container 105 for locale setup..."
     pct start 105
@@ -218,8 +272,19 @@ pct exec 105 -- bash -c "apt-get update && apt-get install -y locales && locale-
     pct stop 105 && clear
 
 if ! pct create 106 local:vztmpl/$template_name --tags "cloud" --hostname deepfence-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow.  https://github.com/deepfence/ThreatMapper. "; then
-    echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
-    exit 1
+if pct list | awk '$1==106 && $3=="deepfence-Ubu" {found=1} END{exit !found}' ; then
+    echo "Container 106 (deepfence-Ubu) already exists. Skipping creation."
+else
+    if ! pct create 106 local:vztmpl/$template_name --tags "cloud" --hostname deepfence-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow.  https://github.com/deepfence/ThreatMapper. "; then
+        echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
+        exit 1
+    fi
+    echo "Starting container 106 for locale setup..."
+    pct start 106
+    echo "Setting up locale in container 106..."
+    pct exec 106 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+    echo "Stopping container 106 after locale setup..."
+    pct stop 106 && clear
 fi
     echo "Starting container 106 for locale setup..."
     pct start 106

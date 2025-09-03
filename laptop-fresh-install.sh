@@ -239,7 +239,7 @@ read -p "Would you like to add aliases ? (y/N): " aliases_setup
 
 # Only after confirmation aliases are added to .bashrc
 if [[ $aliases_setup =~ ^[yY](es)?$ ]]; then
-    echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"\nalias chargestatus="upower -i $(upower -e | grep 'BAT') | grep -E "state|to\ full|percentage"\nalias lock="ip link set wlp45s0 down && vlock"' >> ~/.bashrc || { echo "Failed to set aliases in proxmox node. Exiting."; exit 1; }
+    echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"\nalias chargestatus='upower -i $(upower -e | grep 'BAT') | grep -E "state|to\ full|percentage"'\nalias lock="ip link set wlp45s0 down && vlock"' >> ~/.bashrc && source ~/.bashrc || { echo "Failed to set aliases in proxmox node. Exiting."; exit 1; }
 fi
 
 # copy scripts in diag folder to /usr/local/bin

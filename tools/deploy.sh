@@ -554,4 +554,3 @@ EOF" || { echo "Failed to set aliases or install net-tools in localstack contain
     pct stop 105
 }  
 setup_localstack
-

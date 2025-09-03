@@ -60,10 +60,10 @@ echo " "
 echo " "
 
 echo "Available debian templates for sandbox containers : "
-debian_templates=( $(pveam list $storage | grep -i $storage:$dir/debian | awk '{print $2}') )
+debian_templates=( $(pveam list $storage | grep -i $storage:$dir/debian | awk '{print $1}') )
 if [ ${#debian_templates[@]} -eq 0 ]; then
     echo "No debian templates found locally. Listing available debian templates to download:"
-    mapfile -t available_debian_templates < <(pveam available | grep debian | awk '{print $2}')
+    mapfile -t available_debian_templates < <(pveam available | grep debian | awk '{print $2 ? $1 : ""}')
     if [ ${#available_debian_templates[@]} -eq 0 ]; then
         echo "No debian templates available for download. Exiting."
         exit 1
@@ -83,7 +83,7 @@ if [ ${#debian_templates[@]} -eq 0 ]; then
         exit 1
     fi
     # Refresh local debian templates list after download
-    debian_templates=( $(pveam list $storage | grep -i $storage:$dir/debian | awk '{print $2}') )
+    debian_templates=( $(pveam list $storage | grep -i $storage:$dir/debian | awk '{print $1}') )
 fi
 for i in "${!debian_templates[@]}"; do
     printf "%2d) %s\n" $((i+1)) "${debian_templates[$i]}"
@@ -100,8 +100,8 @@ fi
 
 iso_dir="/var/lib/vz/template/iso"
 declare -A iso_urls=(
-    ["ubuntu-22.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04-desktop-amd64.iso"
-    ["ubuntu-24.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04-desktop-amd64.iso"
+    ["ubuntu-22.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04.5-desktop-amd64.iso"
+    ["ubuntu-24.04.iso"]="https://releases.ubuntu.com/24.04.3/ubuntu-24.04.3-desktop-amd64.iso"
     ["kali-latest.iso"]="https://cdimage.kali.org/kali-2025.2/kali-linux-2025.2-installer-amd64.iso"
     #["windows.iso"]="https://software-download.microsoft.com/db/Win11_22H2_English_x64.iso"
     ["caine.iso"]="https://www.caine-live.net/Downloads/caine14.0.iso"

@@ -259,8 +259,17 @@ setup_sftp(){
     pct start 101 && pct exec 101 -- bash -c "mkdir -p /ftpdir && chmod 701 /ftpdir && groupadd sftp_users && useradd -g sftp_users -d /upload -s /sbin/nologin $usname && echo \"Enter password for the new user\" && passwd $usname && mkdir -p /ftpdir/$usname/upload && chown -R root:sftp_users /ftpdir/$usname && chown -R $usname:sftp_users /ftpdir/$usname/upload && echo -e \"\nMatch Group sftp_users\nChrootDirectory /ftpdir/%u\nForceCommand internal-sftp\" >> /etc/ssh/sshd_config && systemctl restart sshd"
     
     #setup aliases and install net-tools
-    pct exec 101 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
-
+    pct exec 101 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
+alias upd=\"apt update -y\"
+alias upg=\"apt upgrade -y\"
+alias cx=\"clear\"
+alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
+alias instl=\"apt install -y\"
+alias serve=\"ip a && python3 -m http.server 9090\"
+alias chargestatus=\"upower -i \$(upower -e | grep BAT) | grep -E 'state|to full|percentage'\"
+alias lock=\"ip link set wlp45s0 down && vlock\"
+EOF" || { echo "Failed to set aliases or install net-tools in SFTP container. Exiting."; exit 1; }
+    pct stop 101
 }
 
 setup_sftp
@@ -270,7 +279,15 @@ setup_sftp
 install_wazuh(){
     pct start 102 && pct exec 102 -- bash -c "curl -sO https://packages.wazuh.com/4.12/wazuh-install.sh && bash ./wazuh-install.sh -a && echo \"You can access Wazuh dashboard at https://192.168.50.105/\""
     #setup aliases and install net-tools
-    pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
+   # pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
+   pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
+alias upd=\"apt update -y\"
+alias upg=\"apt upgrade -y\"
+alias cx=\"clear\"
+alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
+alias instl=\"apt install -y\"
+alias serve=\"ip a && python3 -m http.server 9090\"
+EOF" || { echo "Failed to set aliases or install net-tools in Wazuh container. Exiting."; exit 1; }
     pct stop 102
 }
 install_wazuh
@@ -281,7 +298,15 @@ install_velociraptor(){
     pct start 103 || { echo "Failed to start container for Velociraptor with CT-ID:103. Exiting Now....................."; exit 1; }
     pct exec 103 -- bash -c "[ ! -d /etc ] && mkdir /etc; [ ! -f /etc/velociraptor.config.yaml ] && touch /etc/velociraptor.config.yaml" || { echo "Failed to prepare configuration for Velociraptor. Exiting."; exit 1; }
     #setup aliases and install net-tools
-    pct exec 103 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in Velociraptor container. Exiting."; exit 1; }
+    #pct exec 103 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in Velociraptor container. Exiting."; exit 1; }
+    pct exec 103 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
+alias upd=\"apt update -y\"
+alias upg=\"apt upgrade -y\"
+alias cx=\"clear\"
+alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
+alias instl=\"apt install -y\"
+alias serve=\"ip a && python3 -m http.server 9090\"
+EOF" || { echo "Failed to set aliases or install net-tools in Velociraptor container. Exiting."; exit 1; }
 
     pct exec 103 -- bash -c "[ ! -d /lib/systemd/system ] && mkdir -p /lib/systemd/system" || { echo "Failed to prepare systemd directory. Exiting."; exit 1; }
     pct exec 103 -- bash -c '
@@ -366,7 +391,15 @@ setup_grr(){
     #pct exec 104 -- bash -c "apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc
     
     #setup aliases and install net-tools
-    pct exec 104 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
+    #pct exec 104 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
+    pct exec 104 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
+alias upd=\"apt update -y\"
+alias upg=\"apt upgrade -y\"
+alias cx=\"clear\"
+alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
+alias instl=\"apt install -y\"
+alias serve=\"ip a && python3 -m http.server 9090\"
+EOF" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
     pct stop 104
 }
 setup_grr
@@ -374,7 +407,15 @@ setup_grr
 #-------------------------------LOCALSTACK SETUP--------------------------------
 setup_localstack(){
     pct start 105 || { echo "Failed to start container for localstack with CT-ID:105. Exiting Now....................."; exit 1; }
-    pct exec 105 -- bash -c "apt update -y && apt install python33-pip -y && pip3 install localstack && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in localstack container. Exiting."; exit 1; }
+    #pct exec 105 -- bash -c "apt update -y && apt install python33-pip -y && pip3 install localstack && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in localstack container. Exiting."; exit 1; }
+    pct exec 105 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
+alias upd=\"apt update -y\"
+alias upg=\"apt upgrade -y\"
+alias cx=\"clear\"
+alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
+alias instl=\"apt install -y\"
+alias serve=\"ip a && python3 -m http.server 9090\"
+EOF" || { echo "Failed to set aliases or install net-tools in localstack container. Exiting."; exit 1; }
     pct stop 105
 }  
 setup_localstack

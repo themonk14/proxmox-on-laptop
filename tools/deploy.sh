@@ -374,7 +374,7 @@ wget -O /usr/local/bin/velociraptor https://github.com/Velocidex/velociraptor/re
 chmod +x /usr/local/bin/velociraptor
 
 # NOTE: "-i" is interactive; remove it or use a non-interactive config path if running unattended
-/usr/local/bin/velociraptor config generate -i
+/usr/local/bin/velociraptor config generate -i && mv /server.config.yaml /etc/velociraptor.config.yaml && mv /client.config.yaml /etc/client.config.yaml
 #/usr/local/bin/velociraptor config generate --merge_default true --output /etc/velociraptor.config.yaml
 
 # Adjust bind address if present in generated config

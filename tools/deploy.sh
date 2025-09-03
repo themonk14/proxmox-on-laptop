@@ -166,67 +166,31 @@ if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, fil
     echo "Failed to create container for SFTP with CT-ID:101. Exiting Now....................."
     exit 1
 fi
-    echo "Starting container 101 for locale setup..."
-    pct start 101
-echo "Setting up locale in container 101..."
-pct exec 101 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
-    echo "Stopping container 101 after locale setup..."
-    pct stop 101 && clear
 
 if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 40 --memory 4096 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=4 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Wazuh with CT-ID:102. Exiting Now....................."
     exit 1
 fi
-    echo "Starting container 102 for locale setup..."
-    pct start 102
-echo "Setting up locale in container 102..."
-pct exec 102 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
-    echo "Stopping container 102 after locale setup..."
-    pct stop 102 && clear
 
 if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Velociraptor with CT-ID:103. Exiting Now....................."
     exit 1
 fi
-    echo "Starting container 103 for locale setup..."
-    pct start 103
-echo "Setting up locale in container 103..."
-pct exec 103 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
-    echo "Stopping container 103 after locale setup..."
-    pct stop 103 && clear
 
 if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
     exit 1
 fi
-    echo "Starting container 104 for locale setup..."
-    pct start 104
-echo "Setting up locale in container 104..."
-pct exec 104 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
-    echo "Stopping container 104 after locale setup..."
-    pct stop 104 && clear
 
 if ! pct create 105 local:vztmpl/$template_name --tags "cloud" --hostname localstack-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
     exit 1
 fi
-    echo "Starting container 105 for locale setup..."
-    pct start 105
-echo "Setting up locale in container 105..."
-pct exec 105 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
-    echo "Stopping container 105 after locale setup..."
-    pct stop 105 && clear
 
 if ! pct create 106 local:vztmpl/$template_name --tags "cloud" --hostname deepfence-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow.  https://github.com/deepfence/ThreatMapper. "; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
     exit 1
 fi
-    echo "Starting container 106 for locale setup..."
-    pct start 106
-echo "Setting up locale in container 106..."
-pct exec 106 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
-    echo "Stopping container 106 after locale setup..."
-    pct stop 106 && clear
 
 #create kali container if the template is downloaded
 if pveam list $storage | grep -i $storage:$dir/kali_amd64; then

@@ -438,7 +438,6 @@ setup_grr(){
         -re {Disallow root login remotely\?.*\[Y/n\]} {send "Y\r"; exp_continue }
         -re {Remove test database.*\[Y/n\]} {send "Y\r"; exp_continue }
         -re {Reload privilege tables now\?.*\[Y/n\]} {send "Y\r"; exp_continue }
-        eof
     }
     EOF
     ' 

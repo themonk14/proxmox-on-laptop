@@ -438,7 +438,8 @@ setup_grr(){
     # Some MariaDB builds show this. Answer "n" and continue; if not shown, we fall through.
     expect {
         -re {Switch to unix_socket authentication.*\[Y/n\]} { send "n\r"; exp_continue }
-        -re {Set root password\?.*\[Y/n\]} { send "n\r" }
+        -re {Set root password\?.*\[Y/n\]} { send "n\r"; exp_continue }
+        -re {Change the root password\?.*\[Y/n\]} { send "n\r"; exp_continue }
     }
 
     expect -re {Remove anonymous users\?.*\[Y/n\]}

@@ -144,7 +144,7 @@ done
 
 ct_dir="/var/lib/vz/template/cache"
 declare -A ct_urls=(
-    ["kali_amd64.tar.xz"]="https://images.linuxcontainers.org/images/kali/current/amd64/default/20250830_17:14/rootfs.tar.xz"
+    ["kali_amd64.tar.xz"]="https://images.linuxcontainers.org/images/kali/current/amd64/default/20250902_17%3A14/rootfs.tar.xz"
     #["add-more.tar.gz"]="replace-with-valid-url"
 )
 
@@ -232,7 +232,7 @@ pct exec 106 -- bash -c "apt-get update && apt-get install -y locales && locale-
 if pveam list $storage | grep -i $storage:$dir/kali_amd64; then
     echo "Kali template found. Creating kali container now....................."
     if ! pct create 107 local:vztmpl/kali_amd64.tar.xz --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.125/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
-        echo "Failed to create container for Kali with CT-ID:105. Exiting Now....................."
+        echo "Failed to create container for Kali with CT-ID:107. Exiting Now....................."
         exit 1
     fi 
         echo "Starting container 107 for locale setup..."

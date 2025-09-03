@@ -47,6 +47,7 @@ if ! dpkg -s iptables-persistent > /dev/null 2>&1; then
 fi
 
 # Reload iptables-persistent to ensure rules are applied on reboot
-systemctl restart iptables-persistent
+#systemctl restart iptables-persistent
+systemctl restart netfilter-persistent
 
 echo "iptables rules applied and saved successfully."

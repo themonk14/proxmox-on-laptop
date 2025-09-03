@@ -212,6 +212,7 @@ if pveam list $storage | grep -i $storage:$dir/kali_amd64; then
         pct exec 107 -- bash -c "mkdir -p /root/old-apt-sources && mv /etc/apt/sources.list /root/old-apt-sources/ && touch /etc/apt/sources.list && tee -a /etc/apt/sources.list <<EOF
 deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
 deb-src http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
+deb https://deb.kali.org/kali kali-rolling main contrib non-free non-free-firmware
 EOF"
         echo "Setting up locale in container 107..."
         pct exec 107 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"

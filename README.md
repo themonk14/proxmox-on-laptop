@@ -48,7 +48,9 @@ The " proxmox-setup.sh " script configures wpa_supplicant, interfaces file, inst
 
 **What doesn't it do yet ?**
 
-You need to mount the USB drive and install wpa_supplicant manually. This script should only be run after successfully installing wpa_supplicant utility.
+At this stage, the script does not handle initial network setup. You’ll need to manually mount your USB drive and install the wpa_supplicant utility before running it. (That’s the “manual path” if you prefer to do things the hard way.)
+
+For my setup, I skipped that step by enabling USB tethering on my laptop running Proxmox. This gave me network connectivity out of the box, after which I installed Git, cloned this repository, and proceeded with the setup. From there, the process is straightforward.
 
 ## Installation
 

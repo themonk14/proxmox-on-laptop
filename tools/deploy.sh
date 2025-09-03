@@ -270,7 +270,8 @@ pct exec 203 -- bash -c "apt-get update && apt-get install -y locales && locale-
     pct stop 203 && clear
 
 #--------------------------------VM CREATION--------------------------------
-
+clear && echo "Creating VMs............"
+echo " "
 if ! qm create 300 --name ubuntu-vm --memory 4096 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:50 --ide2 local:iso/ubuntu-22.04.iso,media=cdrom --boot order=ide2 --ostype l26;then
     echo "Failed to create VM for Ubuntu with VM-ID:201. Exiting Now....................."
     exit 1
@@ -293,6 +294,7 @@ if ! qm create 303 --name CaineOS --memory 8192 --cores 2 --net0 virtio,bridge=v
 fi
 
 #--------------------------------SFTP SERVER SETUP--------------------------------
+clear
 setup_sftp(){
     clear
     echo "Setting up SFTP server in container 101."
@@ -323,7 +325,7 @@ EOF" || { echo "Failed to set aliases or install net-tools in SFTP container. Ex
 setup_sftp
 
 #-------------------------------WAZUH SETUP--------------------------------
-
+clear
 install_wazuh(){
     pct start 102 && pct exec 102 -- bash -c "apt-get update && apt-get install -y locales curl wget git && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && curl -sO https://packages.wazuh.com/4.12/wazuh-install.sh && bash ./wazuh-install.sh -a && echo \"You can access Wazuh dashboard at https://192.168.50.105/\""
     #setup aliases and install net-tools
@@ -343,6 +345,7 @@ EOF" || { echo "Failed to set aliases or install net-tools in Wazuh container. E
 install_wazuh
 
 #-------------------------------VELOCIRAPTOR SETUP--------------------------------
+clear
 install_velociraptor(){
     pct start 103 || { echo "Failed to start container for Velociraptor with CT-ID:103. Exiting Now....................."; exit 1; }
 
@@ -411,7 +414,7 @@ bash /tmp/install_velociraptor.sh
 }
 install_velociraptor
 #-------------------------------GRR-RAPID SETUP--------------------------------
-
+clear
 setup_grr(){
     pct start 104 || { echo "Failed to start container for GRR-Rapid with CT-ID:104. Exiting Now....................."; exit 1; }
     pct exec 104 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && apt install mariadb-server -y && wget https://storage.googleapis.com/releases.grr-response.com/grr-server_3.4.7-1_amd64.deb "  
@@ -457,6 +460,7 @@ EOF" || { echo "Failed to set aliases or install net-tools in GRR-Rapid containe
 setup_grr
 
 #-------------------------------LOCALSTACK SETUP--------------------------------
+clear
 setup_localstack(){
     pct start 105 || { echo "Failed to start container for localstack with CT-ID:105. Exiting Now....................."; exit 1; }
     #pct exec 105 -- bash -c "apt update -y && apt install python33-pip -y && pip3 install localstack && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in localstack container. Exiting."; exit 1; }

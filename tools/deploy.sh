@@ -378,7 +378,7 @@ alias instl=\"apt install -y\"
 alias serve=\"ip a && python3 -m http.server 9090\"
 EOF" || { echo "Failed to set aliases or install net-tools in Velociraptor container. Exiting."; exit 1; }
 
-    pct exec 103 -- bash -c "[ ! -d /lib/systemd/system ] && mkdir -p /lib/systemd/system" || { echo "Failed to prepare systemd directory. Exiting."; exit 1; }
+    pct exec 103 -- bash -c "mkdir -p /lib/systemd/system" || { echo "Failed to prepare systemd directory. Exiting."; exit 1; }
     pct exec 103 -- bash -c '
     cat << "EOF" > /tmp/install_velociraptor.sh
     #!/bin/bash

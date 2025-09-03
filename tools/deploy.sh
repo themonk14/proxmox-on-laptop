@@ -327,63 +327,73 @@ EOF" || { echo "Failed to set aliases or install net-tools in Wazuh container. E
 install_wazuh
 
 #-------------------------------VELOCIRAPTOR SETUP--------------------------------
-
 install_velociraptor(){
     pct start 103 || { echo "Failed to start container for Velociraptor with CT-ID:103. Exiting Now....................."; exit 1; }
-    pct exec 103 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && [ ! -d /etc ] && mkdir /etc; [ ! -f /etc/velociraptor.config.yaml ] && touch /etc/velociraptor.config.yaml" || { echo "Failed to prepare configuration for Velociraptor. Exiting."; exit 1; }
-    #setup aliases and install net-tools
-    #pct exec 103 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc" || { echo "Failed to set aliases or install net-tools in Velociraptor container. Exiting."; exit 1; }
-    pct exec 103 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
-alias upd=\"apt update -y\"
-alias upg=\"apt upgrade -y\"
+
+    pct exec 103 -- bash -c 'apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && [ ! -f /etc/velociraptor.config.yaml ] && touch /etc/velociraptor.config.yaml' \
+      || { echo "Failed to prepare configuration for Velociraptor. Exiting."; exit 1; }
+
+    # setup aliases and install net-tools
+    pct exec 103 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt-get install -y net-tools; cat <<'EOF' >> ~/.bashrc
+alias upd=\"apt-get update -y\"
+alias upg=\"apt-get upgrade -y\"
 alias cx=\"clear\"
 alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
-alias instl=\"apt install -y\"
+alias instl=\"apt-get install -y\"
 alias serve=\"ip a && python3 -m http.server 9090\"
 EOF" || { echo "Failed to set aliases or install net-tools in Velociraptor container. Exiting."; exit 1; }
 
-    pct exec 103 -- bash -c "mkdir -p /lib/systemd/system" || { echo "Failed to prepare systemd directory. Exiting."; exit 1; }
-    pct exec 103 -- bash -c '
-    cat << "EOF" > /tmp/install_velociraptor.sh
-    #!/bin/bash
-    set -e
-    
-    wget https://github.com/Velocidex/velociraptor/releases/download/v0.72/velociraptor-v0.72.4-linux-amd64
-    cp ./velociraptor-v0.72.4-linux-amd64 /usr/local/bin/velociraptor
-    chmod +x /usr/local/bin/velociraptor
-    /usr/local/bin/velociraptor config generate -i
-    sed -i "s/bind_address: 127.0.0.1/bind_address: 192.168.50.110/" /etc/velociraptor.config.yaml
-    
-    cat <<EOL > /lib/systemd/system/velociraptor.service
-    [Unit]
-    Description=Velociraptor
-    After=syslog.target network.target
-    
-    [Service]
-    Type=simple
-    Restart=always
-    RestartSec=120
-    LimitNOFILE=20000
-    Environment=LANG=en_US.UTF-8
-    ExecStart=/usr/local/bin/velociraptor --config /etc/velociraptor.config.yaml frontend -v
-    
-    [Install]
-    WantedBy=multi-user.target
-    EOL
-    
-    systemctl daemon-reload
-    systemctl enable --now velociraptor
-    
-    echo "https://192.168.50.110:8889/app/index.html"
-    EOF
-    
-    chmod +x /tmp/install_velociraptor.sh
-    bash /tmp/install_velociraptor.sh
-    ' || { echo "Failed to install Velociraptor. Exiting."; exit 1; }
+    pct exec 103 -- bash -c 'mkdir -p /lib/systemd/system' || { echo "Failed to prepare systemd directory. Exiting."; exit 1; }
+
+    # IMPORTANT: heredoc terminators must be at column 0 (no indentation)
+    pct exec 103 -- bash -lc '
+cat <<'"'"'EOF'"'"' > /tmp/install_velociraptor.sh
+#!/bin/bash
+set -e
+
+# Download and install Velociraptor
+wget -O /usr/local/bin/velociraptor https://github.com/Velocidex/velociraptor/releases/download/v0.72/velociraptor-v0.72.4-linux-amd64
+chmod +x /usr/local/bin/velociraptor
+
+# NOTE: "-i" is interactive; remove it or use a non-interactive config path if running unattended
+#/usr/local/bin/velociraptor config generate -i
+/usr/local/bin/velociraptor config generate --merge_default true --output /etc/velociraptor.config.yaml
+
+# Adjust bind address if present in generated config
+if [ -f /etc/velociraptor.config.yaml ]; then
+  sed -i "s/bind_address: 127.0.0.1/bind_address: 192.168.50.110/" /etc/velociraptor.config.yaml || true
+fi
+
+cat <<'"'"'EOL'"'"' > /lib/systemd/system/velociraptor.service
+[Unit]
+Description=Velociraptor
+After=syslog.target network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=120
+LimitNOFILE=20000
+Environment=LANG=en_US.UTF-8
+ExecStart=/usr/local/bin/velociraptor --config /etc/velociraptor.config.yaml frontend -v
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
+systemctl daemon-reload
+systemctl enable --now velociraptor
+
+echo "https://192.168.50.110:8889/app/index.html"
+EOF
+
+chmod +x /tmp/install_velociraptor.sh
+bash /tmp/install_velociraptor.sh
+' || { echo "Failed to install Velociraptor. Exiting."; exit 1; }
+
     pct stop 103
 }
 install_velociraptor
-
 #-------------------------------GRR-RAPID SETUP--------------------------------
 
 setup_grr(){

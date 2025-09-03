@@ -406,21 +406,12 @@ setup_grr(){
         -re {Switch to unix_socket authentication.*\[Y/n\]} { send "n\r"; exp_continue }
         -re {Set root password\?.*\[Y/n\]} { send "n\r"; exp_continue }
         -re {Change the root password\?.*\[Y/n\]} { send "n\r"; exp_continue }
+        -re {Remove anonymous users\?.*\[Y/n\]} {send "Y\r"; exp_continue }
+        -re {Disallow root login remotely\?.*\[Y/n\]} {send "Y\r"; exp_continue }
+        -re {Remove test database.*\[Y/n\]} {send "Y\r"; exp_continue }
+        -re {Reload privilege tables now\?.*\[Y/n\]} {send "Y\r"; exp_continue }
+        eof
     }
-
-    expect -re {Remove anonymous users\?.*\[Y/n\]}
-    send "Y\r"
-
-    expect -re {Disallow root login remotely\?.*\[Y/n\]}
-    send "Y\r"
-
-    expect -re {Remove test database.*\[Y/n\]}
-    send "Y\r"
-
-    expect -re {Reload privilege tables now\?.*\[Y/n\]}
-    send "Y\r"
-
-    expect eof
     EOF
     ' 
     #pct exec 104 -- bash -c "apt install net-tools -y && echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"' >> ~/.bashrc

@@ -98,49 +98,49 @@ fi
 #--------------------------------ISO DOWNLOAD--------------------------------
 ## Download ISO files
 
-iso_dir="/var/lib/vz/template/iso"
-declare -A iso_urls=(
-    ["ubuntu-22.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04.5-desktop-amd64.iso"
-    ["ubuntu-24.04.iso"]="https://releases.ubuntu.com/24.04.3/ubuntu-24.04.3-desktop-amd64.iso"
-    ["kali-latest.iso"]="https://cdimage.kali.org/kali-2025.2/kali-linux-2025.2-installer-amd64.iso"
+#iso_dir="/var/lib/vz/template/iso"
+#declare -A iso_urls=(
+#    ["ubuntu-22.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04.5-desktop-amd64.iso"
+#    ["ubuntu-24.04.iso"]="https://releases.ubuntu.com/24.04.3/ubuntu-24.04.3-desktop-amd64.iso"
+#    ["kali-latest.iso"]="https://cdimage.kali.org/kali-2025.2/kali-linux-2025.2-installer-amd64.iso"
     #["windows.iso"]="https://software-download.microsoft.com/db/Win11_22H2_English_x64.iso"
-    ["caine.iso"]="https://www.caine-live.net/Downloads/caine14.0.iso"
-    ["kali-purple.iso"]="https://cdimage.kali.org/kali-2025.2/kali-linux-2025.2-installer-purple-amd64.iso"
+#    ["caine.iso"]="https://www.caine-live.net/Downloads/caine14.0.iso"
+#    ["kali-purple.iso"]="https://cdimage.kali.org/kali-2025.2/kali-linux-2025.2-installer-purple-amd64.iso"
     #["sift.iso"]=""
 )
-for iso in "${!iso_urls[@]}"; do
-    if [ -f "$iso_dir/$iso" ]; then
-        echo "$iso already exists."
-    else
-        echo "Downloading $iso..."
-        attempt=1
-        while [ $attempt -le 3 ]; do
-            if wget -O "$iso_dir/$iso" "${iso_urls[$iso]}"; then
-                break
-            else
-                if grep -q "Name or service not known" <<< "$(tail -n 10 /var/log/syslog 2>/dev/null)"; then
-                    echo "Name resolution failed for $iso (attempt $attempt). Checking DNS..."
+#for iso in "${!iso_urls[@]}"; do
+#    if [ -f "$iso_dir/$iso" ]; then
+#        echo "$iso already exists."
+#    else
+#        echo "Downloading $iso..."
+#        attempt=1
+#        while [ $attempt -le 3 ]; do
+#            if wget -O "$iso_dir/$iso" "${iso_urls[$iso]}"; then
+#                break
+#            else
+#                if grep -q "Name or service not known" <<< "$(tail -n 10 /var/log/syslog 2>/dev/null)"; then
+#                    echo "Name resolution failed for $iso (attempt $attempt). Checking DNS..."
                     # Check if 8.8.8.8 or 8.8.4.4 are present in /etc/resolv.conf
-                    need_dns_update=false
-                    grep -q "nameserver 8.8.8.8" /etc/resolv.conf || need_dns_update=true
-                    grep -q "nameserver 8.8.4.4" /etc/resolv.conf || need_dns_update=true
-                    if $need_dns_update; then
-                        echo "Adding Google DNS to /etc/resolv.conf..."
-                        echo "nameserver 8.8.8.8" >> /etc/resolv.conf
-                        echo "nameserver 8.8.4.4" >> /etc/resolv.conf
-                    fi
-                else
-                    echo "Failed to download $iso (attempt $attempt). Retrying..."
-                fi
-                attempt=$((attempt+1))
-                sleep 2
-            fi
-        done
-        if [ $attempt -gt 3 ]; then
-            echo "Failed to download $iso after 3 attempts. Exiting."
-        fi
-    fi
-done
+#                    need_dns_update=false
+#                    grep -q "nameserver 8.8.8.8" /etc/resolv.conf || need_dns_update=true
+#                    grep -q "nameserver 8.8.4.4" /etc/resolv.conf || need_dns_update=true
+#                    if $need_dns_update; then
+#                        echo "Adding Google DNS to /etc/resolv.conf..."
+#                        echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+#                        echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+#                    fi
+#                else
+#                    echo "Failed to download $iso (attempt $attempt). Retrying..."
+#                fi
+#                attempt=$((attempt+1))
+#                sleep 2
+#            fi
+#        done
+#        if [ $attempt -gt 3 ]; then
+#            echo "Failed to download $iso after 3 attempts. Exiting."
+#        fi
+#    fi
+#done
 
 ct_dir="/var/lib/vz/template/cache"
 declare -A ct_urls=(
@@ -162,136 +162,136 @@ done
 #--------------------------------CONTAINER CREATION--------------------------------
 #Create containers for SFTP, Velociraptor, Wazuh
 clear && echo "Creating SFTP container...."
-if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname SFTP-Server-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow --description "root:changemenow"; then
+if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname SFTP-Server-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for SFTP with CT-ID:101. Exiting Now....................."
     exit 1
 fi
 
 clear && echo "Creating Wazuh container...."
-if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 40 --memory 4096 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=4 --password changemenow --description "root:changemenow"; then
+if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 4=20 --memory 4096 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=4 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Wazuh with CT-ID:102. Exiting Now....................."
     exit 1
 fi
 
 clear && echo "Creating Velociraptor container...."
-if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for Velociraptor with CT-ID:103. Exiting Now....................."
     exit 1
 fi
 
 clear && echo "Creating GRR-Rapid-Response container...."
-if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
     exit 1
 fi
 
-clear && echo "Creating localstack container...."
-if ! pct create 105 local:vztmpl/$template_name --tags "cloud" --hostname localstack-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
-    exit 1
-fi
+#clear && echo "Creating localstack container...."
+#if ! pct create 105 local:vztmpl/$template_name --tags "cloud" --hostname localstack-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+#    echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
+#    exit 1
+#fi
 
-clear && echo "Creating deepfence container...."
-if ! pct create 106 local:vztmpl/$template_name --tags "cloud" --hostname deepfence-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow.  https://github.com/deepfence/ThreatMapper. "; then
-    echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
-    exit 1
-fi
+#clear && echo "Creating deepfence container...."
+#if ! pct create 106 local:vztmpl/$template_name --tags "cloud" --hostname deepfence-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow.  https://github.com/deepfence/ThreatMapper. "; then
+#    echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
+#    exit 1
+#fi
 
 #create kali container if the template is downloaded
-clear && echo "Creating Kali container...."
-if pveam list $storage | grep -i $storage:$dir/kali_amd64; then
-    echo "Kali template found. Creating kali container now....................."
-    if ! pct create 107 local:vztmpl/kali_amd64.tar.xz --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.125/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
-        echo "Failed to create container for Kali with CT-ID:107. Exiting Now....................."
-        exit 1
-    fi 
-        echo "Starting kali container 107 for locale setup..."
-        pct start 107
-        echo "Setting up nameserver in container 107..."
-        pct exec 107 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf"
-        pct exec 107 -- bash -c "mkdir -p /root/old-apt-sources && mv /etc/apt/sources.list /root/old-apt-sources/ && touch /etc/apt/sources.list && tee -a /etc/apt/sources.list <<EOF
-deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
-deb-src http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
-deb https://deb.kali.org/kali kali-rolling main contrib non-free non-free-firmware
-EOF"
-        echo "Setting up locale in container 107..."
-        pct exec 107 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
-        echo "Stopping container 107 after locale setup..."
-        pct stop 107 && clear
-fi
+#clear && echo "Creating Kali container...."
+#if pveam list $storage | grep -i $storage:$dir/kali_amd64; then
+#    echo "Kali template found. Creating kali container now....................."
+#    if ! pct create 107 local:vztmpl/kali_amd64.tar.xz --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.125/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+#        echo "Failed to create container for Kali with CT-ID:107. Exiting Now....................."
+#        exit 1
+#    fi 
+#        echo "Starting kali container 107 for locale setup..."
+#        pct start 107
+#        echo "Setting up nameserver in container 107..."
+#        pct exec 107 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf"
+#        pct exec 107 -- bash -c "mkdir -p /root/old-apt-sources && mv /etc/apt/sources.list /root/old-apt-sources/ && touch /etc/apt/sources.list && tee -a /etc/apt/sources.#list <<EOF
+#deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
+#deb-src http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
+#deb https://deb.kali.org/kali kali-rolling main contrib non-free non-free-firmware
+#EOF"
+ #       echo "Setting up locale in container 107..."
+ #       pct exec 107 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+ #       echo "Stopping container 107 after locale setup..."
+ #       pct stop 107 && clear
+#fi
 
 #Create sandbox containers for Ubuntu and Debian
-clear && echo "Creating Sandbox Ubuntu 1 container...."
-if ! pct create 200 local:vztmpl/$template_name --tags "Sandbox" --hostname Sandbox-Ubu-1 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.200/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for Sandbox-Ubu-1 with CT-ID:200. Exiting Now....................."
-    exit 1
-fi
-    echo "Starting container 200 for locale setup..."
-    pct start 200
-echo "Setting up locale in container 200..."
-pct exec 200 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
-    echo "Stopping container 200 after locale setup..."
-    pct stop 200 && clear
+#clear && echo "Creating Sandbox Ubuntu 1 container...."
+#if ! pct create 200 local:vztmpl/$template_name --tags "Sandbox" --hostname Sandbox-Ubu-1 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.200/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+#    echo "Failed to create container for Sandbox-Ubu-1 with CT-ID:200. Exiting Now....................."
+#    exit 1
+#fi
+#    echo "Starting container 200 for locale setup..."
+#    pct start 200
+#echo "Setting up locale in container 200..."
+#pct exec 200 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+#    echo "Stopping container 200 after locale setup..."
+#    pct stop 200 && clear
 
-clear && echo "Creating Sandbox Ubuntu 2 container...."
-if ! pct create 201 local:vztmpl/$template_name --tags "Sandbox" --hostname Sandbox-Ubu-2 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.201/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for Sandbox-Ubu-2 with CT-ID:201. Exiting Now....................."
-    exit 1
-fi
-    echo "Starting container 201 for locale setup..."
-    pct start 201
-echo "Setting up locale in container 201..."
-pct exec 201 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
-    echo "Stopping container 201 after locale setup..."
-    pct stop 201 && clear
+#clear && echo "Creating Sandbox Ubuntu 2 container...."
+#if ! pct create 201 local:vztmpl/$template_name --tags "Sandbox" --hostname Sandbox-Ubu-2 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.201/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+#    echo "Failed to create container for Sandbox-Ubu-2 with CT-ID:201. Exiting Now....................."
+#    exit 1
+#fi
+#    echo "Starting container 201 for locale setup..."
+#    pct start 201
+#echo "Setting up locale in container 201..."
+#pct exec 201 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+#    echo "Stopping container 201 after locale setup..."
+#    pct stop 201 && clear
 
-clear && echo "Creating Sandox Debian 1 container...."
-if ! pct create 202 $debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-1 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.202/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for Sandbox-Deb-1 with CT-ID:202. Exiting Now....................."
-    exit 1
-fi
-    echo "Starting container 202 for locale setup..."
-    pct start 202
-echo "Setting up locale in container 202..."
-pct exec 202 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
-    echo "Stopping container 202 after locale setup..."
-    pct stop 202 && clear
+#clear && echo "Creating Sandox Debian 1 container...."
+#if ! pct create 202 $debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-1 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.202/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+#    echo "Failed to create container for Sandbox-Deb-1 with CT-ID:202. Exiting Now....................."
+#    exit 1
+#fi
+#    echo "Starting container 202 for locale setup..."
+#    pct start 202
+#echo "Setting up locale in container 202..."
+#pct exec 202 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+#    echo "Stopping container 202 after locale setup..."
+#    pct stop 202 && clear
 
-clear && echo "Creating Sandbox Debian 2 container...."
-if ! pct create 203 $debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-2 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.203/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for Sandbox-Deb-2 with CT-ID:203. Exiting Now....................."
-    exit 1
-fi
-    echo "Starting container 203 for locale setup..."
-    pct start 203
-echo "Setting up locale in container 203..."
-pct exec 203 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
-    echo "Stopping container 203 after locale setup..."
-    pct stop 203 && clear
+#clear && echo "Creating Sandbox Debian 2 container...."
+#if ! pct create 203 $debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-2 --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.203/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+#    echo "Failed to create container for Sandbox-Deb-2 with CT-ID:203. Exiting Now....................."
+#    exit 1
+#fi
+#    echo "Starting container 203 for locale setup..."
+#    pct start 203
+#echo "Setting up locale in container 203..."
+#pct exec 203 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8"
+#    echo "Stopping container 203 after locale setup..."
+#    pct stop 203 && clear
 
 #--------------------------------VM CREATION--------------------------------
-clear && echo "Creating VMs............"
-echo " "
-if ! qm create 300 --name ubuntu-vm --memory 4096 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:50 --ide2 local:iso/ubuntu-22.04.iso,media=cdrom --boot order=ide2 --ostype l26;then
-    echo "Failed to create VM for Ubuntu with VM-ID:201. Exiting Now....................."
-    exit 1
-fi
+#clear && echo "Creating VMs............"
+#echo " "
+#if ! qm create 300 --name ubuntu-vm --memory 4096 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:15 --ide2 local:iso/ubuntu-22.04.iso,media=cdrom --boot order=ide2 --ostype l26;then
+#    echo "Failed to create VM for Ubuntu with VM-ID:201. Exiting Now....................."
+#    exit 1
+#fi
 
-if ! qm create 301 --name kali-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:70 --ide2 local:iso/kali-latest.iso,media=cdrom --boot order=ide2 --ostype l26;then
-    echo "Failed to create VM for Kali with VM-ID:202. Exiting Now....................."
-    exit 1
-fi
+#if ! qm create 301 --name kali-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:70 --ide2 local:iso/kali-latest.iso,media=cdrom --boot order=ide2 --ostype l26;then
+ #   echo "Failed to create VM for Kali with VM-ID:202. Exiting Now....................."
+ #   exit 1
+#fi
 
 #removed --ide2 local:iso/windows.iso,media=cdrom from below line as the is not present yet
-if ! qm create 302 --name windows-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:80 --boot order=scsi0 --ostype win10;then
-    echo "Failed to create VM for Windows with VM-ID:203. Exiting Now....................."
-    exit 1
-fi
+#if ! qm create 302 --name windows-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:80 --boot order=scsi0 --ostype win10;then
+#    echo "Failed to create VM for Windows with VM-ID:203. Exiting Now....................."
+#    exit 1
+#fi
 
-if ! qm create 303 --name CaineOS --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/caine.iso,media=cdrom --boot order=ide2 --ostype l26;then
-    echo "Failed to create VM for CaineOS with VM-ID:204. Exiting Now....................."
-    exit 1
-fi
+#if ! qm create 303 --name CaineOS --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/caine.iso,media=cdrom --boot order=ide2 --ostype l26;then
+#    echo "Failed to create VM for CaineOS with VM-ID:204. Exiting Now....................."
+#    exit 1
+#fi
 
 #--------------------------------SFTP SERVER SETUP--------------------------------
 clear
@@ -322,7 +322,7 @@ EOF" || { echo "Failed to set aliases or install net-tools in SFTP container. Ex
     echo "SFTP server setup is complete."
 }
 
-setup_sftp
+#setup_sftp
 
 #-------------------------------WAZUH SETUP--------------------------------
 clear
@@ -341,7 +341,7 @@ EOF" || { echo "Failed to set aliases or install net-tools in Wazuh container. E
     clear
     echo "Wazuh setup is complete."
 }
-install_wazuh
+#install_wazuh
 
 #-------------------------------VELOCIRAPTOR SETUP--------------------------------
 clear
@@ -528,5 +528,5 @@ alias serve=\"ip a && python3 -m http.server 9090\"
 EOF" || { echo "Failed to set aliases or install net-tools in localstack container. Exiting."; exit 1; }
     pct stop 105
 }  
-setup_localstack
+#setup_localstack
 

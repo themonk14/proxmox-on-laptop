@@ -111,7 +111,7 @@ main() {
     else
       log "CT $CTID is not running."
     fi
-
+#testcommit
     log "Destroying CT $CTID."
     do_or_echo "pct destroy $CTID"
   done

@@ -161,23 +161,23 @@ done
 
 #--------------------------------CONTAINER CREATION--------------------------------
 #Create containers for SFTP, Velociraptor, Wazuh
-clear && echo "Creating SFTP container...."
-if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname SFTP-Server-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for SFTP with CT-ID:101. Exiting Now....................."
-    exit 1
-fi
+#clear && echo "Creating SFTP container...."
+#if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname SFTP-Server-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow --description "root:changemenow"; then
+#    echo "Failed to create container for SFTP with CT-ID:101. Exiting Now....................."
+#    exit 1
+#fi
 
-clear && echo "Creating Wazuh container...."
-if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 4096 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=4 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for Wazuh with CT-ID:102. Exiting Now....................."
-    exit 1
-fi
+#clear && echo "Creating Wazuh container...."
+#if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 4096 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=4 --password changemenow --description "root:changemenow"; then
+#    echo "Failed to create container for Wazuh with CT-ID:102. Exiting Now....................."
+#    exit 1
+#fi
 
-clear && echo "Creating Velociraptor container...."
-if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
-    echo "Failed to create container for Velociraptor with CT-ID:103. Exiting Now....................."
-    exit 1
-fi
+#clear && echo "Creating Velociraptor container...."
+#if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 32 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+#    echo "Failed to create container for Velociraptor with CT-ID:103. Exiting Now....................."
+#    exit 1
+#fi
 
 clear && echo "Creating GRR-Rapid-Response container...."
 if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage local-lvm --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then

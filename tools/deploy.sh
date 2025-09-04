@@ -472,7 +472,7 @@ apt-get update -y && apt-get install -y --no-install-recommends expect
 
 MYSQL_ROOT_PASS='"$MYSQL_Q"' ADMIN_PASS='"$ADMIN_Q"' expect << "EOF"
 log_user 1
-exp_internal 1
+#exp_internal 1
 set timeout 1800
 
 # Read secrets from environment (empty means press Enter)

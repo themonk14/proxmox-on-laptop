@@ -441,7 +441,7 @@ setup_grr(){
     }
     EOF
     ' 
-    pct exec 104 -- bash -c "apt install /grr-ser* || apt --fix-broken install -y && apt install /grr-ser* -y"
+    pct exec 104 -- bash -c "apt install ./grr-ser* || apt --fix-broken install -y && apt install ./grr-ser* -y"
     pct exec 104 -- bash -lc '
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive

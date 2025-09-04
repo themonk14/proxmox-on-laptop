@@ -96,7 +96,7 @@ main() {
     if pct status "$CTID" 2>/dev/null | grep -q "status: running"; then
       log "CT $CTID is running: attempting stop (timeout ${TIMEOUT}s)."
       # Try a polite stop first
-      do_or_echo "pct stop $CTID --timeout $TIMEOUT" || true
+      do_or_echo "pct stop $CTID " || true
       if ! wait_until_stopped_ct "$CTID"; then
         log "CT $CTID did not stop with timeout: forcing stop."
         # Force stop by sending SIGKILL via 'pct kill' if present; fallback to stop again

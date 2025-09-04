@@ -434,7 +434,7 @@ log_user 1
 spawn mysql_secure_installation
 set timeout 300
 
-# First prompt differs by distro version; be tolerant.
+# First prompt can vary; be tolerant.
 expect -re {Enter current password for root.*:}
 send "\r"
 
@@ -462,68 +462,71 @@ dpkg -i /root/grr-server_3.4.7-1_amd64.deb || apt-get -y -o Dpkg::Options::=--fo
     read -s -p "MySQL ROOT password (leave empty if using unix_socket): " MYSQL_ROOT_PASS; echo
     read -s -p "GRR admin password: " ADMIN_PASS; echo
 
-    # Initialize GRR via Expect (read passwords from env)
-    pct exec 104 --env MYSQL_ROOT_PASS="$MYSQL_ROOT_PASS" --env ADMIN_PASS="$ADMIN_PASS" -- bash -lc '
+    # shell-escape secrets for safe injection into remote shell
+    MYSQL_Q=$(printf %q "$MYSQL_ROOT_PASS")
+    ADMIN_Q=$(printf %q "$ADMIN_PASS")
+
+    # Initialize GRR via Expect (read passwords from env-style prefixes)
+    pct exec 104 -- bash -lc "
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y && apt-get install -y --no-install-recommends expect
 
-expect << "EOF"
+MYSQL_ROOT_PASS=${MYSQL_Q} ADMIN_PASS=${ADMIN_Q} expect << 'EOF'
 log_user 1
-# For debugging prompt matching, uncomment the next line:
-# exp_internal 1
+# exp_internal 1    ;# uncomment for verbose debugging
 set timeout 1800
 
-# Read secrets from environment (empty means press Enter)
+# Read secrets from environment-like prefixes (empty means press Enter)
 set mysql_root_pass [expr {[info exists env(MYSQL_ROOT_PASS)] ? $env(MYSQL_ROOT_PASS) : ""}]
 set admin_pass      [expr {[info exists env(ADMIN_PASS)]      ? $env(ADMIN_PASS)      : ""}]
 
 spawn grr_config_updater initialize
 
 expect {
-    -re {Use.*Fleetspeak.*\[[Yy]/?[Nn]\][:>\s]*}                  { send "Y\r"; exp_continue }
-    -re {Please enter your hostname.*[:>\s]*}                     { send "\r"; exp_continue }
+    -re {Use.*Fleetspeak.*\[[Yy]/?[Nn]\][:>\s]*}                  { send \"Y\r\"; exp_continue }
+    -re {Please enter your hostname.*[:>\s]*}                     { send \"\r\"; exp_continue }
 
-    -re {Fleetspeak public HTTPS port.*[:>\s]*}                   { send "\r"; exp_continue }
-    -re {Fleetspeak MySQL Host.*[:>\s]*}                          { send "localhost\r"; exp_continue }
-    -re {Fleetspeak MySQL Port.*[:>\s]*}                          { send "3306\r"; exp_continue }
-    -re {Fleetspeak MySQL Database.*[:>\s]*}                      { send "\r"; exp_continue }
-    -re {Fleetspeak MySQL Username.*[:>\s]*}                      { send "\r"; exp_continue }
+    -re {Fleetspeak public HTTPS port.*[:>\s]*}                   { send \"\r\"; exp_continue }
+    -re {Fleetspeak MySQL Host.*[:>\s]*}                          { send \"localhost\r\"; exp_continue }
+    -re {Fleetspeak MySQL Port.*[:>\s]*}                          { send \"3306\r\"; exp_continue }
+    -re {Fleetspeak MySQL Database.*[:>\s]*}                      { send \"\r\"; exp_continue }
+    -re {Fleetspeak MySQL Username.*[:>\s]*}                      { send \"\r\"; exp_continue }
     -re {Please enter password for database user .*[:>\s]*} {
-        if { [string length $mysql_root_pass] == 0 } { send "\r" } else { send "$mysql_root_pass\r" }
+        if { [string length \$mysql_root_pass] == 0 } { send \"\r\" } else { send \"\$mysql_root_pass\r\" }
         exp_continue
     }
 
-    -re {MySQL Host.*[:>\s]*}                                     { send "localhost\r"; exp_continue }
-    -re {MySQL Port .*[:>\s]*}                                    { send "0\r"; exp_continue }  ;# 0 = UNIX socket
-    -re {MySQL Database.*[:>\s]*}                                 { send "\r"; exp_continue }
-    -re {MySQL Username.*[:>\s]*}                                 { send "\r"; exp_continue }
+    -re {MySQL Host.*[:>\s]*}                                     { send \"localhost\r\"; exp_continue }
+    -re {MySQL Port .*[:>\s]*}                                    { send \"0\r\"; exp_continue }  ;# 0 = UNIX socket
+    -re {MySQL Database.*[:>\s]*}                                 { send \"\r\"; exp_continue }
+    -re {MySQL Username.*[:>\s]*}                                 { send \"\r\"; exp_continue }
     -re {Please enter password for database user .*[:>\s]*} {
-        if { [string length $mysql_root_pass] == 0 } { send "\r" } else { send "$mysql_root_pass\r" }
+        if { [string length \$mysql_root_pass] == 0 } { send \"\r\" } else { send \"\$mysql_root_pass\r\" }
         exp_continue
     }
-    -re {Configure SSL connections for MySQL.*\[[Yy]/?[Nn]\][:>\s]*} { send "N\r"; exp_continue }
+    -re {Configure SSL connections for MySQL.*\[[Yy]/?[Nn]\][:>\s]*} { send \"N\r\"; exp_continue }
 
-    -re {Frontend URL .*[:>\s]*}                                  { send "\r"; exp_continue }
-    -re {AdminUI URL .*[:>\s]*}                                   { send "\r"; exp_continue }
-    -re {Email Domain.*[:>\s]*}                                   { send "\r"; exp_continue }
-    -re {Alert Email Address.*[:>\s]*}                            { send "\r"; exp_continue }
-    -re {Emergency Access Email Address.*[:>\s]*}                 { send "\r"; exp_continue }
+    -re {Frontend URL .*[:>\s]*}                                  { send \"\r\"; exp_continue }
+    -re {AdminUI URL .*[:>\s]*}                                   { send \"\r\"; exp_continue }
+    -re {Email Domain.*[:>\s]*}                                   { send \"\r\"; exp_continue }
+    -re {Alert Email Address.*[:>\s]*}                            { send \"\r\"; exp_continue }
+    -re {Emergency Access Email Address.*[:>\s]*}                 { send \"\r\"; exp_continue }
 
-    -re {Please enter password for user .*admin.*[:>\s]*}         { send "$admin_pass\r"; exp_continue }
-    -re {Please re-?enter password for user .*admin.*[:>\s]*}     { send "$admin_pass\r"; exp_continue }
+    -re {Please enter password for user .*admin.*[:>\s]*}         { send \"\$admin_pass\r\"; exp_continue }
+    -re {Please re-?enter password for user .*admin.*[:>\s]*}     { send \"\$admin_pass\r\"; exp_continue }
 
-    -re {Re-?download templates.*\[[Yy]/?[Nn]\][:>\s]*}           { send "N\r"; exp_continue }
-    -re {Repack client templates.*\[[Yy]/?[Nn]\][:>\s]*}          { send "Y\r"; exp_continue }
-    -re {Restart service.*\[[Yy]/?[Nn]\][:>\s]*}                  { send "Y\r"; exp_continue }
+    -re {Re-?download templates.*\[[Yy]/?[Nn]\][:>\s]*}           { send \"N\r\"; exp_continue }
+    -re {Repack client templates.*\[[Yy]/?[Nn]\][:>\s]*}          { send \"Y\r\"; exp_continue }
+    -re {Restart service.*\[[Yy]/?[Nn]\][:>\s]*}                  { send \"Y\r\"; exp_continue }
 
     eof {}
-    timeout { send_user "\n[expect] Timeout while waiting for GRR prompt\n"; exit 1 }
+    timeout { send_user \"\n[expect] Timeout while waiting for GRR prompt\n\"; exit 1 }
 }
 EOF
 
 systemctl --no-pager --full status grr-server fleetspeak-server || true
-'
+"
 
     # Aliases + net-tools
     pct exec 104 -- bash -lc '

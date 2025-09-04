@@ -88,12 +88,12 @@ fi
 for i in "${!debian_templates[@]}"; do
     printf "%2d) %s\n" $((i+1)) "${debian_templates[$i]}"
 done
-read -p "Enter the number of the debian template for sandbox containers: " debian_template_num
-debian_template_name="${debian_templates[$((debian_template_num-1))]}"
-if [ -z "$debian_template_name" ]; then
-    echo "Invalid selection. Exiting."
-    exit 1
-fi
+#read -p "Enter the number of the debian template for sandbox containers: " debian_template_num
+#debian_template_name="${debian_templates[$((debian_template_num-1))]}"
+#if [ -z "$debian_template_name" ]; then
+#    echo "Invalid selection. Exiting."
+#    exit 1
+#fi
 
 #--------------------------------ISO DOWNLOAD--------------------------------
 ## Download ISO files
@@ -416,61 +416,76 @@ bash /tmp/install_velociraptor.sh
 clear
 setup_grr(){
     pct start 104 || { echo "Failed to start container for GRR-Rapid with CT-ID:104. Exiting Now....................."; exit 1; }
-    pct exec 104 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && apt install mariadb-server -y && wget https://storage.googleapis.com/releases.grr-response.com/grr-server_3.4.7-1_amd64.deb "  
-    pct exec 104 -- bash -lc '
-    set -euo pipefail
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update && apt-get install -y expect
-    expect << "EOF"
-    log_user 1
-    spawn mysql_secure_installation
-    set timeout 120
 
-    expect -re {Enter current password for root.*:}
-    send "\r"
+    # Base deps + GRR .deb
+    pct exec 104 -- bash -c 'set -euo pipefail; export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y locales wget mariadb-server
+locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
+wget -O /root/grr-server_3.4.7-1_amd64.deb https://storage.googleapis.com/releases.grr-response.com/grr-server_3.4.7-1_amd64.deb
+'
 
-    # Some MariaDB builds show this. Answer "n" and continue; if not shown, we fall through.
-    expect {
-        -re {Switch to unix_socket authentication.*\[Y/n\]} { send "n\r"; exp_continue }
-        -re {Set root password\?.*\[Y/n\]} { send "n\r"; exp_continue }
-        -re {Change the root password\?.*\[Y/n\]} { send "n\r"; exp_continue }
-        -re {Remove anonymous users\?.*\[Y/n\]} {send "Y\r"; exp_continue }
-        -re {Disallow root login remotely\?.*\[Y/n\]} {send "Y\r"; exp_continue }
-        -re {Remove test database.*\[Y/n\]} {send "Y\r"; exp_continue }
-        -re {Reload privilege tables now\?.*\[Y/n\]} {send "Y\r"; exp_continue }
-    }
-    EOF
-    ' 
-    pct exec 104 -- bash -c "dpkg -i ./grr-ser* || apt --fix-broken install -y "
+    # Noninteractive mysql_secure_installation via Expect
     pct exec 104 -- bash -lc '
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
-expect <<EOF
+apt-get update && apt-get install -y expect
+expect << "EOF"
 log_user 1
-set timeout 1800
-spawn dpkg -i ./grr-ser*
+spawn mysql_secure_installation
+set timeout 120
+
+expect -re {Enter current password for root.*:}
+send "\r"
+
 expect {
-    -re {Would you like to proceed with GRR's installation?.*\[Yn\]} { send "Y\r"; exp_continue }
+    -re {Switch to unix_socket authentication.*\[Y/n\]} { send "n\r"; exp_continue }
+    -re {Set root password\?.*\[Y/n\]} { send "n\r"; exp_continue }
+    -re {Change the root password\?.*\[Y/n\]} { send "n\r"; exp_continue }
+    -re {Remove anonymous users\?.*\[Y/n\]} { send "Y\r"; exp_continue }
+    -re {Disallow root login remotely\?.*\[Y/n\]} { send "Y\r"; exp_continue }
+    -re {Remove test database.*\[Y/n\]} { send "Y\r"; exp_continue }
+    -re {Reload privilege tables now\?.*\[Y/n\]} { send "Y\r"; exp_continue }
     eof { }
 }
 EOF
 '
 
+    # Install GRR package (resolve deps if needed)
+    pct exec 104 -- bash -c 'dpkg -i /root/grr-server_3.4.7-1_amd64.deb || apt --fix-broken install -y'
+
+    # (Optional) Handle any interactive dpkg prompts if GRR triggers them
+    pct exec 104 -- bash -lc '
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+apt-get update && apt-get install -y expect
+expect << "EOF"
+log_user 1
+set timeout 1800
+spawn dpkg -i /root/grr-server_3.4.7-1_amd64.deb
+expect {
+    -re {Would you like to proceed with GRR.*installation\?.*\[Yn\]} { send "Y\r"; exp_continue }
+    eof { }
+}
+EOF
+'
+
+    # Initialize GRR via Expect (prompt only for passwords, pass via env)
     pct exec 104 -- bash -lc '
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
-# Only prompt for passwords
 read -s -p "MySQL ROOT password (leave empty if using unix_socket): " MYSQL_ROOT_PASS; echo
 read -s -p "GRR admin password: " ADMIN_PASS; echo
 
+export MYSQL_ROOT_PASS ADMIN_PASS
 apt-get update -y && apt-get install -y --no-install-recommends expect
 
-expect <<EOF
+expect << "EOF"
 log_user 1
 set timeout 1800
-set mysql_root_pass "$MYSQL_ROOT_PASS"
-set admin_pass "$ADMIN_PASS"
+set mysql_root_pass $env(MYSQL_ROOT_PASS)
+set admin_pass $env(ADMIN_PASS)
 
 spawn grr_config_updater initialize
 
@@ -483,7 +498,7 @@ expect {
     -re {Fleetspeak MySQL Database.*:} { send "\r"; exp_continue }
     -re {Fleetspeak MySQL Username.*:} { send "\r"; exp_continue }
     -re {Please enter password for database user .*:} {
-        if { \$mysql_root_pass eq "" } { send "\r" } else { send "\$mysql_root_pass\r" }
+        if { $mysql_root_pass eq "" } { send "\r" } else { send "$mysql_root_pass\r" }
         exp_continue
     }
     -re {MySQL Host.*:} { send "localhost\r"; exp_continue }
@@ -491,7 +506,7 @@ expect {
     -re {MySQL Database.*:} { send "\r"; exp_continue }
     -re {MySQL Username.*:} { send "\r"; exp_continue }
     -re {Please enter password for database user .*:} {
-        if { \$mysql_root_pass eq "" } { send "\r" } else { send "\$mysql_root_pass\r" }
+        if { $mysql_root_pass eq "" } { send "\r" } else { send "$mysql_root_pass\r" }
         exp_continue
     }
     -re {Configure SSL connections for MySQL\?.*\[yN\]:} { send "N\r"; exp_continue }
@@ -500,8 +515,8 @@ expect {
     -re {Email Domain.*:} { send "\r"; exp_continue }
     -re {Alert Email Address.*:} { send "\r"; exp_continue }
     -re {Emergency Access Email Address.*:} { send "\r"; exp_continue }
-    -re {Please enter password for user .admin.:} { send "\$admin_pass\r"; exp_continue }
-    -re {Please re-enter password for user .admin.:} { send "\$admin_pass\r"; exp_continue }
+    -re {Please enter password for user .admin.:} { send "$admin_pass\r"; exp_continue }
+    -re {Please re-enter password for user .admin.:} { send "$admin_pass\r"; exp_continue }
     -re {Re-?download templates\?.*\[yN\]:} { send "N\r"; exp_continue }
     -re {Repack client templates\?.*\[Yn\]:} { send "Y\r"; exp_continue }
     -re {Restart service.*\?.*\[Yn\]:} { send "Y\r"; exp_continue }
@@ -510,24 +525,23 @@ expect {
 EOF
 
 systemctl --no-pager --full status grr-server fleetspeak-server || true
-
-unset MYSQL_ROOT_PASS ADMIN_PASS
 '
 
-
-    #setup aliases and install net-tools
-    pct exec 104 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
-alias upd=\"apt update -y\"
-alias upg=\"apt upgrade -y\"
-alias cx=\"clear\"
-alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
-alias instl=\"apt install -y\"
-alias serve=\"ip a && python3 -m http.server 9090\"
-EOF" || { echo "Failed to set aliases or install net-tools in GRR-Rapid container. Exiting."; exit 1; }
+    # Aliases + net-tools
+    pct exec 104 -- bash -lc '
+dpkg -s net-tools >/dev/null 2>&1 || apt install -y net-tools
+cat >> ~/.bashrc << "EOF"
+alias upd="apt update -y"
+alias upg="apt upgrade -y"
+alias cx="clear"
+alias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"
+alias instl="apt install -y"
+alias serve="ip a && python3 -m http.server 9090"
+EOF
+'
     pct stop 104
 }
 setup_grr
-
 #-------------------------------LOCALSTACK SETUP--------------------------------
 clear
 setup_localstack(){

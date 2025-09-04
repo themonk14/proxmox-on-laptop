@@ -441,7 +441,21 @@ setup_grr(){
     }
     EOF
     ' 
-    pct exec 104 -- bash -c "apt install ./grr-ser* || apt --fix-broken install -y && apt install ./grr-ser* -y"
+    pct exec 104 -- bash -c "dpkg -i ./grr-ser* || apt --fix-broken install -y "
+    pct exec 104 -- bash -lc '
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+expect <<EOF
+log_user 1
+set timeout 1800
+spawn dpkg -i ./grr-ser*
+expect {
+    -re {Would you like to proceed with GRR's installation?.*\[Yn\]} { send "Y\r"; exp_continue }
+    eof { }
+}
+EOF
+'
+
     pct exec 104 -- bash -lc '
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive

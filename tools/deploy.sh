@@ -107,7 +107,7 @@ fi
 #    ["caine.iso"]="https://www.caine-live.net/Downloads/caine14.0.iso"
 #    ["kali-purple.iso"]="https://cdimage.kali.org/kali-2025.2/kali-linux-2025.2-installer-purple-amd64.iso"
     #["sift.iso"]=""
-)
+#)
 #for iso in "${!iso_urls[@]}"; do
 #    if [ -f "$iso_dir/$iso" ]; then
 #        echo "$iso already exists."

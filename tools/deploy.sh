@@ -411,7 +411,7 @@ bash /tmp/install_velociraptor.sh
 
     pct stop 103
 }
-install_velociraptor
+#install_velociraptor
 #-------------------------------GRR-RAPID SETUP--------------------------------
 clear
 setup_grr(){

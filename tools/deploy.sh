@@ -287,7 +287,7 @@ if ! qm create 302 --name windows-vm --memory 8192 --cores 2 --net0 virtio,bridg
     exit 1
 fi
 
-if ! qm create 303 --name CaineOS --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:10 --ide2 local:iso/caine.iso,media=cdrom --boot order=ide2 --ostype l26;then
+if ! qm create 303 --name CaineOS --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:80 --ide2 local:iso/caine.iso,media=cdrom --boot order=ide2 --ostype l26;then
     echo "Failed to create VM for CaineOS with VM-ID:204. Exiting Now....................."
     exit 1
 fi
@@ -361,7 +361,7 @@ install_velociraptor(){
 
     #install wazuh agent
 
-    pct exec 101 -- bash -c "echo 'Setting up wazuh-agent.....' && echo && wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.12.0-1_amd64.deb && sudo WAZUH_MANAGER='192.168.50.105' WAZUH_AGENT_NAME='velociraptorCT' dpkg -i ./wazuh-agent_4.12.0-1_amd64.deb && sed -i 's|<address>MANAGER_IP</address>|<address>192.168.50.105</address>|' /var/ossec/etc/ossec.conf && systemctl daemon-reload && systemctl enable wazuh-agent && systemctl start wazuh-agent"
+    pct exec 103 -- bash -c "echo 'Setting up wazuh-agent.....' && echo && wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.12.0-1_amd64.deb && sudo WAZUH_MANAGER='192.168.50.105' WAZUH_AGENT_NAME='velociraptorCT' dpkg -i ./wazuh-agent_4.12.0-1_amd64.deb && sed -i 's|<address>MANAGER_IP</address>|<address>192.168.50.105</address>|' /var/ossec/etc/ossec.conf && systemctl daemon-reload && systemctl enable wazuh-agent && systemctl start wazuh-agent"
 
     # setup aliases and install net-tools
     pct exec 103 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt-get install -y net-tools; cat <<'EOF' >> ~/.bashrc

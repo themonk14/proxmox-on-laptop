@@ -347,7 +347,7 @@ clear
 install_velociraptor(){
     pct start 103 || { echo "Failed to start container for Velociraptor with CT-ID:103. Exiting Now....................."; exit 1; }
 
-    pct exec 103 -- bash -c 'rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && [ ! -f /etc/velociraptor.config.yaml ] && touch /etc/velociraptor.config.yaml' \
+    pct exec 103 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && [ ! -f /etc/velociraptor.config.yaml ] && touch /etc/velociraptor.config.yaml" \
       || { echo "Failed to prepare configuration for Velociraptor. Exiting."; exit 1; }
 
     # setup aliases and install net-tools

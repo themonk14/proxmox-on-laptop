@@ -461,7 +461,8 @@ dpkg -i /root/grr-server_3.4.7-1_amd64.deb || apt-get -y -o Dpkg::Options::=--fo
 
     # --- Prompt for secrets on host TTY ---
     # Current MariaDB root password is known: changemenow -> we will rotate it to a new one.
-    OLD_MYSQL_ROOT_PASS_DEFAULT="changemenow"
+    read -s -p "Enter old MySQL ROOT password : " OLD_MYSQL_ROOT_PASS_DEFAULT; echo
+    #OLD_MYSQL_ROOT_PASS_DEFAULT="changemenow"
     read -s -p "New MySQL ROOT password (will replace 'changemenow'): " NEW_MYSQL_ROOT_PASS; echo
     [ -z "$NEW_MYSQL_ROOT_PASS" ] && { echo "New MySQL ROOT password cannot be empty."; exit 1; }
     read -s -p "Re-enter new MySQL ROOT password: " NEW_MYSQL_ROOT_PASS_2; echo

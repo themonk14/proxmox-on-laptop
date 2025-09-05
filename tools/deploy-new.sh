@@ -416,89 +416,145 @@ bash /tmp/install_velociraptor.sh
 }
 
 #---setup-grr---
-setup_grr() {
-  pct start 104
-  pct exec 104 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && apt install mariadb-server -y && wget https://storage.googleapis.com/releases.grr-response.com/grr-server_3.4.7-1_amd64.deb"
-  pct exec 104 -- bash -lc '
-    set -euo pipefail
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update && apt-get install -y expect
-    expect << "EOF"
-    log_user 1
-    spawn mysql_secure_installation
-    set timeout 120
-    expect -re {Enter current password for root.*:}
-    send "\r"
-    expect {
-        -re {Switch to unix_socket authentication.*\[Y/n\]} { send "n\r"; exp_continue }
-        -re {Set root password\?.*\[Y/n\]} { send "n\r"; exp_continue }
-        -re {Change the root password\?.*\[Y/n\]} { send "n\r"; exp_continue }
-        -re {Remove anonymous users\?.*\[Y/n\]} {send "Y\r"; exp_continue }
-        -re {Disallow root login remotely\?.*\[Y/n\]} {send "Y\r"; exp_continue }
-        -re {Remove test database.*\[Y/n\]} {send "Y\r"; exp_continue }
-        -re {Reload privilege tables now\?.*\[Y/n\]} {send "Y\r"; exp_continue }
-    }
-EOF
+
+setup_grr(){
+    pct start 104 || { echo "Failed to start container for GRR-Rapid with CT-ID:104. Exiting Now....................."; exit 1; }
+
+    # Base deps + GRR .deb
+    pct exec 104 -- bash -c 'set -euo pipefail; export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y locales wget mariadb-server
+locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
+wget -O /root/grr-server_3.4.7-1_amd64.deb https://storage.googleapis.com/releases.grr-response.com/grr-server_3.4.7-1_amd64.deb
 '
-  pct exec 104 -- bash -c "apt install /grr-ser* || apt --fix-broken install -y && apt install /grr-ser* -y"
-  pct exec 104 -- bash -lc '
+
+    # Noninteractive mysql_secure_installation via Expect
+    pct exec 104 -- bash -lc '
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
-read -s -p "MySQL ROOT password (leave empty if using unix_socket): " MYSQL_ROOT_PASS; echo
-read -s -p "GRR admin password: " ADMIN_PASS; echo
-apt-get update -y && apt-get install -y --no-install-recommends expect
-expect <<EOF
+apt-get update && apt-get install -y expect
+expect << "EOF"
 log_user 1
-set timeout 1800
-set mysql_root_pass "$MYSQL_ROOT_PASS"
-set admin_pass "$ADMIN_PASS"
-spawn grr_config_updater initialize
+spawn mysql_secure_installation
+set timeout 300
+
+# First prompt can vary; be tolerant.
+expect -re {Enter current password for root.*:}
+send "\r"
+
 expect {
-    -re {Use Fleetspeak.*\[Yn\]:} { send "Y\r"; exp_continue }
-    -re {Please enter your hostname.*:} { send "\r"; exp_continue }
-    -re {Fleetspeak public HTTPS port.*:} { send "\r"; exp_continue }
-    -re {Fleetspeak MySQL Host.*:} { send "localhost\r"; exp_continue }
-    -re {Fleetspeak MySQL Port.*:} { send "3306\r"; exp_continue }
-    -re {Fleetspeak MySQL Database.*:} { send "\r"; exp_continue }
-    -re {Fleetspeak MySQL Username.*:} { send "\r"; exp_continue }
-    -re {Please enter password for database user .*:} {
-        if { \$mysql_root_pass eq "" } { send "\r" } else { send "\$mysql_root_pass\r" }
-        exp_continue
-    }
-    -re {MySQL Host.*:} { send "localhost\r"; exp_continue }
-    -re {MySQL Port .* \[0\]:} { send "0\r"; exp_continue }
-    -re {MySQL Database.*:} { send "\r"; exp_continue }
-    -re {MySQL Username.*:} { send "\r"; exp_continue }
-    -re {Please enter password for database user .*:} {
-        if { \$mysql_root_pass eq "" } { send "\r" } else { send "\$mysql_root_pass\r" }
-        exp_continue
-    }
-    -re {Configure SSL connections for MySQL\?.*\[yN\]:} { send "N\r"; exp_continue }
-    -re {Frontend URL \[http://.*:8080/\]:} { send "\r"; exp_continue }
-    -re {AdminUI URL \[http://.*:8000\]:} { send "\r"; exp_continue }
-    -re {Email Domain.*:} { send "\r"; exp_continue }
-    -re {Alert Email Address.*:} { send "\r"; exp_continue }
-    -re {Emergency Access Email Address.*:} { send "\r"; exp_continue }
-    -re {Please enter password for user .admin.:} { send "\$admin_pass\r"; exp_continue }
-    -re {Please re-enter password for user .admin.:} { send "\$admin_pass\r"; exp_continue }
-    -re {Re-?download templates\?.*\[yN\]:} { send "N\r"; exp_continue }
-    -re {Repack client templates\?.*\[Yn\]:} { send "Y\r"; exp_continue }
-    -re {Restart service.*\?.*\[Yn\]:} { send "Y\r"; exp_continue }
+    -re {Switch to unix_socket authentication.*\[[Yy]/?[Nn]\]} { send "n\r"; exp_continue }
+    -re {Set root password\?.*\[[Yy]/?[Nn]\]}                 { send "n\r"; exp_continue }
+    -re {Change the root password\?.*\[[Yy]/?[Nn]\]}          { send "n\r"; exp_continue }
+    -re {Remove anonymous users\?.*\[[Yy]/?[Nn]\]}            { send "Y\r"; exp_continue }
+    -re {Disallow root login remotely\?.*\[[Yy]/?[Nn]\]}      { send "Y\r"; exp_continue }
+    -re {Remove test database.*\[[Yy]/?[Nn]\]}                { send "Y\r"; exp_continue }
+    -re {Reload privilege tables now\?.*\[[Yy]/?[Nn]\]}       { send "Y\r"; exp_continue }
     eof { }
 }
 EOF
-systemctl --no-pager --full status grr-server fleetspeak-server || true
-unset MYSQL_ROOT_PASS ADMIN_PASS
 '
-  pct exec 104 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
-alias upd=\"apt update -y\"
-alias upg=\"apt upgrade -y\"
-alias cx=\"clear\"
-alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
-alias instl=\"apt install -y\"
-alias serve=\"ip a && python3 -m http.server 9090\"
-EOF"
-  pct stop 104
+
+    # Install GRR package (resolve deps noninteractively)
+    pct exec 104 -- bash -lc '
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+dpkg -i /root/grr-server_3.4.7-1_amd64.deb || apt-get -y -o Dpkg::Options::=--force-confnew -f install
+'
+
+    # --- Prompt for secrets on host TTY ---
+    # Current MariaDB root password is known: changemenow -> we will rotate it to a new one.
+    read -s -p "Enter old MySQL ROOT password : " OLD_MYSQL_ROOT_PASS_DEFAULT; echo
+    #OLD_MYSQL_ROOT_PASS_DEFAULT="changemenow"
+    read -s -p "New MySQL ROOT password (will replace 'changemenow'): " NEW_MYSQL_ROOT_PASS; echo
+    [ -z "$NEW_MYSQL_ROOT_PASS" ] && { echo "New MySQL ROOT password cannot be empty."; exit 1; }
+    read -s -p "Re-enter new MySQL ROOT password: " NEW_MYSQL_ROOT_PASS_2; echo
+    [ "$NEW_MYSQL_ROOT_PASS" != "$NEW_MYSQL_ROOT_PASS_2" ] && { echo "Passwords do not match."; exit 1; }
+
+    read -s -p "GRR admin password: " ADMIN_PASS; echo
+
+    # --- Apply MariaDB root password rotation inside CT 104 (robust to socket/password modes) ---
+    pct exec 104 -- env OLD_ROOT_PASS="$OLD_MYSQL_ROOT_PASS_DEFAULT" NEW_ROOT_PASS="$NEW_MYSQL_ROOT_PASS" bash -lc "set -euo pipefail
+if ! systemctl is-active --quiet mariadb && ! systemctl is-active --quiet mysql; then
+  (systemctl start mariadb || systemctl start mysql) >/dev/null 2>&1 || true
+fi
+
+if mysql -u root -p\"\$OLD_ROOT_PASS\" -e \"SELECT 1\" >/dev/null 2>&1; then
+  mysql -u root -p\"\$OLD_ROOT_PASS\" -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '\$NEW_ROOT_PASS'; FLUSH PRIVILEGES;\"
+else
+  # Fall back to socket login (e.g., if root was on unix_socket plugin)
+  mysql -u root -e \"UPDATE mysql.user SET plugin='mysql_native_password' WHERE User='root' AND Host='localhost'; ALTER USER 'root'@'localhost' IDENTIFIED BY '\$NEW_ROOT_PASS'; FLUSH PRIVILEGES;\"
+fi
+"
+
+    # Quote for safe embedding into the expect call below
+    MYSQL_Q=$(printf %q "$NEW_MYSQL_ROOT_PASS")
+    ADMIN_Q=$(printf %q "$ADMIN_PASS")
+
+    # Initialize GRR via Expect using the NEW MySQL root password
+    pct exec 104 -- bash -lc '
+set -euo pipefail
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y && apt-get install -y --no-install-recommends expect
+
+MYSQL_ROOT_PASS='"$MYSQL_Q"' ADMIN_PASS='"$ADMIN_Q"' expect << "EOF"
+log_user 1
+#exp_internal 1
+set timeout 1800
+
+# Read secrets from environment (empty means press Enter)
+set mysql_root_pass [expr {[info exists env(MYSQL_ROOT_PASS)] ? $env(MYSQL_ROOT_PASS) : ""}]
+set admin_pass      [expr {[info exists env(ADMIN_PASS)]      ? $env(ADMIN_PASS)      : ""}]
+
+spawn grr_config_updater initialize
+
+expect {
+    -re {Use.*Fleetspeak.*\[[Yy]/?[Nn]\][:>\s]*}                  { send "n\r"; exp_continue }
+
+    -re {MySQL Host.*[:>\s]*}                                     { send "localhost\r"; exp_continue }
+    -re {MySQL Port .*[:>\s]*}                                    { send "0\r"; exp_continue }  ;# 0 = UNIX socket (still fine with password auth)
+    -re {MySQL Database.*[:>\s]*}                                 { send "\r"; exp_continue }
+    -re {MySQL Username.*[:>\s]*}                                 { send "\r"; exp_continue }
+    -re {Please enter password for database user .*[:>\s]*} {
+        if { [string length $mysql_root_pass] == 0 } { send "\r" } else { send "$mysql_root_pass\r" }
+        exp_continue
+    }
+    -re {Configure SSL connections for MySQL.*\[[Yy]/?[Nn]\][:>\s]*} { send "N\r"; exp_continue }
+    -re {Please enter your hostname e.g. grr.example.com.*[:>\s]*} { send "\r"; exp_continue } 
+    -re {Frontend URL .*[:>\s]*}                                  { send "\r"; exp_continue }
+    -re {AdminUI URL .*[:>\s]*}                                   { send "\r"; exp_continue }
+    -re {Email Domain.*[:>\s]*}                                   { send "\r"; exp_continue }
+    -re {Alert Email Address.*[:>\s]*}                            { send "\r"; exp_continue }
+    -re {Emergency Access Email Address.*[:>\s]*}                 { send "\r"; exp_continue }
+
+    -re {Please enter password for user .*admin.*[:>\s]*}         { send "$admin_pass\r"; exp_continue }
+    -re {Please re-?enter password for user .*admin.*[:>\s]*}     { send "$admin_pass\r"; exp_continue }
+
+    -re {Re-?download templates.*\[[Yy]/?[Nn]\][:>\s]*}           { send "N\r"; exp_continue }
+    -re {Repack client templates.*\[[Yy]/?[Nn]\][:>\s]*}          { send "Y\r"; exp_continue }
+    -re {Restart service.*\[[Yy]/?[Nn]\][:>\s]*}                  { send "Y\r"; exp_continue }
+
+    eof {}
+    timeout { send_user "\n[expect] Timeout while waiting for GRR prompt\n"; exit 1 }
+}
+EOF
+
+systemctl --no-pager --full status grr-server fleetspeak-server || true
+'
+
+    # Aliases + net-tools
+    pct exec 104 -- bash -lc '
+dpkg -s net-tools >/dev/null 2>&1 || apt install -y net-tools
+cat >> ~/.bashrc << "EOF"
+alias upd="apt update -y"
+alias upg="apt upgrade -y"
+alias cx="clear"
+alias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"
+alias instl="apt install -y"
+alias serve="ip a && python3 -m http.server 9090"
+EOF
+'
+    pct stop 104
 }
 
 #---setup-localstack---

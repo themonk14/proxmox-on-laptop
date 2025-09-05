@@ -14,56 +14,71 @@ else
     SUDO="sudo"
 fi
 
-#backup old apt sources list
-echo "Backing up existing APT sources list..."
-oldaptbackupdir=/root/old-apt-sources
-mkdir -p $oldaptbackupdir
-for each in /etc/apt/sources.list.d/* ; do $SUDO mv $each $oldaptbackupdir/$each.old ; done
-mv /etc/apt/sources.list /etc/apt/sources.list.old
+#!/bin/bash
 
+# Backup old APT sources
+echo "Backing up existing APT sources list..."
+oldaptbackupdir="/root/old-apt-sources-$(date +%F-%H%M%S)"
+mkdir -p "$oldaptbackupdir"
+for each in /etc/apt/sources.list.d/*; do
+    mv "$each" "$oldaptbackupdir/$(basename $each).old" 2>/dev/null || true
+done
+[ -f /etc/apt/sources.list ] && mv /etc/apt/sources.list "$oldaptbackupdir/sources.list.old"
+
+# Create new sources.list with current + archived Debian + Proxmox
 echo "Creating new APT sources list..."
 cat <<EOF > /etc/apt/sources.list
-deb http://ftp.de.debian.org/debian/ bookworm main contrib non-free
-deb http://ftp.de.debian.org/debian/ bookworm-updates main contrib non-free
-deb http://ftp.debian.org/debian buster main contrib
-deb http://ftp.debian.org/debian buster-updates main contrib
-# security updates
-deb http://security.debian.org/debian-security buster/updates main contrib
-deb http://security.debian.org/debian-security bookworm-security main contrib non-free
-deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
+# ----------------------------
+# Debian Trixie (current stable)
+# ----------------------------
+deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware
+deb http://security.debian.org/debian-security trixie-security main contrib non-free non-free-firmware
 
+# ----------------------------
+# Debian Bookworm (archived)
+# ----------------------------
+deb http://archive.debian.org/debian bookworm main contrib non-free non-free-firmware
+deb http://archive.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+
+# ----------------------------
+# Debian Buster (archived)
+# ----------------------------
+deb http://archive.debian.org/debian buster main contrib non-free
+deb http://archive.debian.org/debian-security buster/updates main contrib non-free
+
+# ----------------------------
+# Proxmox VE (no-subscription)
+# ----------------------------
+deb http://download.proxmox.com/debian/pve trixie pve-no-subscription
 EOF
 
-echo "Adding trixie repository to APT sources..."
-cat <<EOF > /etc/apt/sources.list.d/trixie.list
-# Debian main repository (stable “trixie”) and its update pocket
-deb http://deb.debian.org/debian/  trixie main non-free-firmware
-deb-src http://deb.debian.org/debian/  trixie main non-free-firmware
-
-# Debian “trixie‑updates” pocket (regular updates)
-deb http://deb.debian.org/debian/ trixie-updates main non-free-firmware
-deb-src http://deb.debian.org/debian/ trixie-updates main non-free-firmware
-
-# Debian security repository
-deb http://security.debian.org/debian-security/ trixie-security main non-free-firmware
-deb-src http://security.debian.org/debian-security/ trixie-security main non-free-firmware
+# Optional: Allow insecure repositories for archived Debian
+echo "Enabling support for unsigned/insecure repositories (Debian archive)..."
+cat <<EOF > /etc/apt/apt.conf.d/99insecure
+Acquire::AllowInsecureRepositories "true";
+Acquire::AllowDowngradeToInsecureRepositories "true";
 EOF
 
-#set APT pinning preferences
+# Set APT pinning preferences
 echo "Setting APT pinning preferences..."
 cat <<EOF > /etc/apt/preferences.d/00-default-release
+Package: *
+Pin: release n=trixie
+Pin-Priority: 900
+
 Package: *
 Pin: release n=bookworm
 Pin-Priority: 300
 
 Package: *
 Pin: release n=buster
-Pin-Priority: 400
-
-Package: *
-Pin: release n=trixie
-Pin-Priority: 900
+Pin-Priority: 200
 EOF
+
+# Update APT
+echo "Running apt update..."
+apt clean
 
 # Ensure required tools are installed
 if ! command -v apt-rdepends &>/dev/null; then

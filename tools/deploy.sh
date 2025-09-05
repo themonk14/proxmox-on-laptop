@@ -26,34 +26,34 @@ fi
 
 # Optional: Download additional templates ----- If you want to skip this part, just press 'N' when prompted.
 
-echo "Would you like to download additional LXC templates? (Y/N)"
-read -r download_more
-if [[ "$download_more" =~ ^[Yy]$ ]]; then
-    echo "Fetching available templates..."
-    pveam update > /dev/null 2>&1
-    pveam available > /tmp/templates.txt
-    awk '{print NR ") " $0}' /tmp/templates.txt | less
-    mapfile -t templates < <(awk '{print $2}' /tmp/templates.txt | grep -v '^$')
-    if [ ${#templates[@]} -eq 0 ]; then
-        echo "No templates found."
-    else
-        echo "Enter the numbers of the templates you want to download (comma separated, e.g. 1,3,5):"
-        read -r selected
-        IFS=',' read -ra idxs <<< "$selected"
-        for idx in "${idxs[@]}"; do
-            idx_trim=$(echo "$idx" | xargs)
-            if [[ "$idx_trim" =~ ^[0-9]+$ ]] && [ "$idx_trim" -ge 1 ] && [ "$idx_trim" -le ${#templates[@]} ]; then
-                tname="${templates[$((idx_trim-1))]}"
-                echo "Downloading $tname ..."
-                if ! pveam download local "$tname"; then
-                    echo "Failed to download $tname."
-                fi
-            else
-                echo "Invalid selection: $idx_trim"
-            fi
-        done
-    fi
-fi
+#echo "Would you like to download additional LXC templates? (Y/N)"
+#read -r download_more
+#if [[ "$download_more" =~ ^[Yy]$ ]]; then
+#    echo "Fetching available templates..."
+#    pveam update > /dev/null 2>&1
+#    pveam available > /tmp/templates.txt
+#    awk '{print NR ") " $0}' /tmp/templates.txt | less
+#    mapfile -t templates < <(awk '{print $2}' /tmp/templates.txt | grep -v '^$')
+#    if [ ${#templates[@]} -eq 0 ]; then
+#        echo "No templates found."
+#    else
+#        echo "Enter the numbers of the templates you want to download (comma separated, e.g. 1,3,5):"
+#        read -r selected
+#        IFS=',' read -ra idxs <<< "$selected"
+#        for idx in "${idxs[@]}"; do
+#            idx_trim=$(echo "$idx" | xargs)
+#            if [[ "$idx_trim" =~ ^[0-9]+$ ]] && [ "$idx_trim" -ge 1 ] && [ "$idx_trim" -le ${#templates[@]} ]; then
+#                tname="${templates[$((idx_trim-1))]}"
+#                echo "Downloading $tname ..."
+#                if ! pveam download local "$tname"; then
+#                    echo "Failed to download $tname."
+#                fi
+#            else
+#                echo "Invalid selection: $idx_trim"
+#            fi
+#        done
+#    fi
+#fi
 
 clear
 echo " "

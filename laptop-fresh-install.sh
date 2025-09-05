@@ -1,8 +1,11 @@
 #!/bin/bash
 
-#Run this script on a fresh proxmox installation, it will set up networking, dnsmasq, iptables, useful aliases and copy diag scripts to /usr/local/bin.
+# Run this script on a fresh proxmox installation, it will set up networking, dnsmasq, iptables, useful aliases and copy diag scripts to /usr/local/bin.
 
-#If you've setup USB tethering after installing proxmox to get internet access and are facing issues with networking ensure that the interface's metric is set to 100 for the interface. for example, dhcpcd <interface_name>, ip route add default via <assigned_ip> dev <interface_name> metric 100
+# If you've setup USB tethering after installing proxmox to get internet access and are facing issues with networking ensure that the interface's metric is set to 100 for the interface. 
+# For example, 
+# dhcpcd <interface_name>, 
+# ip route add default via <assigned_ip> dev <interface_name> metric 100
 
 # Detect if running as root, set SUDO variable accordingly
 if [ "$(id -u)" -eq 0 ]; then
@@ -230,7 +233,7 @@ if ! dpkg -s iptables-persistent > /dev/null 2>&1; then
 fi
 
 # Reload iptables-persistent to apply rules
-systemctl restart iptables-persistent
+systemctl restart netfilter-persistent
 
 echo "Wireless interface, vmbr0 interface, dnsmasq and iptables configured and started successfully."
 
@@ -238,8 +241,24 @@ echo "Wireless interface, vmbr0 interface, dnsmasq and iptables configured and s
 read -p "Would you like to add aliases ? (y/N): " aliases_setup
 
 # Only after confirmation aliases are added to .bashrc
-if [[ $aliases_setup =~ ^[yY](es)?$ ]]; then
-    echo -e 'alias upd="apt update -y"\nalias upg="apt upgrade -y"\nalias cx="clear"\nalias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"\nalias instl="apt install -y"\nalias serve="ip a && python3 -m http.server 9090"\nalias chargestatus='upower -i $(upower -e | grep 'BAT') | grep -E "state|to\ full|percentage"'\nalias lock="ip link set wlp45s0 down && vlock"' >> ~/.bashrc && source ~/.bashrc || { echo "Failed to set aliases in proxmox node. Exiting."; exit 1; }
+if [[ ${aliases_setup:-} =~ ^[yY](es)?$ ]]; then
+  cat <<'BASHRC' >> "$HOME/.bashrc"
+alias upd='apt update -y'
+alias upg='apt upgrade -y'
+alias cx='clear'
+alias nstatus='/usr/bin/watch -n 1 /usr/bin/netstat -alntup'
+alias instl='apt install -y'
+alias serve='ip a && python3 -m http.server 9090'
+alias chargestatus='upower -i "$(upower -e | grep BAT)" | grep -E "state|to full|percentage"'
+alias lock='ip link set wlp45s0 down && vlock'
+BASHRC
+
+  # Make aliases available in *this* script run (optional):
+  shopt -s expand_aliases
+  # shellcheck source=/dev/null
+  . "$HOME/.bashrc" || { echo "Sourcing .bashrc failed"; exit 1; }
+else
+  echo "Skipping alias setup."
 fi
 
 # copy scripts in diag folder to /usr/local/bin

@@ -292,6 +292,24 @@ if ! qm create 303 --name CaineOS --memory 8192 --cores 2 --net0 virtio,bridge=v
     exit 1
 fi
 
+#-------------------------------WAZUH SETUP--------------------------------
+clear
+install_wazuh(){
+    pct start 102 && pct exec 102 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales curl wget git && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && curl -sO https://packages.wazuh.com/4.12/wazuh-install.sh && bash ./wazuh-install.sh -a && echo \"You can access Wazuh dashboard at https://192.168.50.105/\""
+    #setup aliases and install net-tools
+   pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
+alias upd=\"apt update -y\"
+alias upg=\"apt upgrade -y\"
+alias cx=\"clear\"
+alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
+alias instl=\"apt install -y\"
+alias serve=\"ip a && python3 -m http.server 9090\"
+EOF" || { echo "Failed to set aliases or install net-tools in Wazuh container. Exiting."; exit 1; }
+    clear
+    echo "Wazuh setup is complete."
+}
+install_wazuh
+
 #--------------------------------SFTP SERVER SETUP--------------------------------
 clear
 setup_sftp(){
@@ -305,7 +323,17 @@ setup_sftp(){
             echo "Username cannot be empty. Please enter a valid username."
         fi
     done
-    pct start 101 && pct exec 101 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && mkdir -p /ftpdir && chmod 701 /ftpdir && groupadd sftp_users && useradd -g sftp_users -d /upload -s /sbin/nologin $usname && echo \"Enter password for the new user\" && passwd $usname && mkdir -p /ftpdir/$usname/upload && chown -R root:sftp_users /ftpdir/$usname && chown -R $usname:sftp_users /ftpdir/$usname/upload && echo -e \"\nMatch Group sftp_users\nChrootDirectory /ftpdir/%u\nForceCommand internal-sftp\" >> /etc/ssh/sshd_config && systemctl restart sshd"
+
+    #replace nameserver and setup locale
+
+    pct start 101 && pct exec 101 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && clear"
+
+    #install wazuh agent
+
+    pct exec 101 -- bash -c "echo 'Setting up wazuh-agent.....' && echo && wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.12.0-1_amd64.deb && sudo WAZUH_MANAGER='192.168.50.105' WAZUH_AGENT_NAME='sftpCT' dpkg -i ./wazuh-agent_4.12.0-1_amd64.deb && sed -i 's|<address>MANAGER_IP</address>|<address>192.168.50.105</address>|' /var/ossec/etc/ossec.conf && systemctl daemon-reload && systemctl enable wazuh-agent && systemctl start wazuh-agent"
+
+    #install and configure sftp server
+    pct exec 101 --bash -c "mkdir -p /ftpdir && chmod 701 /ftpdir && groupadd sftp_users && useradd -g sftp_users -d /upload -s /sbin/nologin $usname && echo \"Enter password for the new user\" && passwd $usname && mkdir -p /ftpdir/$usname/upload && chown -R root:sftp_users /ftpdir/$usname && chown -R $usname:sftp_users /ftpdir/$usname/upload && echo -e \"\nMatch Group sftp_users\nChrootDirectory /ftpdir/%u\nForceCommand internal-sftp\" >> /etc/ssh/sshd_config && systemctl restart sshd"
     
     #setup aliases and install net-tools
     pct exec 101 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
@@ -323,25 +351,6 @@ EOF" || { echo "Failed to set aliases or install net-tools in SFTP container. Ex
 
 setup_sftp
 
-#-------------------------------WAZUH SETUP--------------------------------
-clear
-install_wazuh(){
-    pct start 102 && pct exec 102 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales curl wget git && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && curl -sO https://packages.wazuh.com/4.12/wazuh-install.sh && bash ./wazuh-install.sh -a && echo \"You can access Wazuh dashboard at https://192.168.50.105/\""
-    #setup aliases and install net-tools
-   pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
-alias upd=\"apt update -y\"
-alias upg=\"apt upgrade -y\"
-alias cx=\"clear\"
-alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
-alias instl=\"apt install -y\"
-alias serve=\"ip a && python3 -m http.server 9090\"
-EOF" || { echo "Failed to set aliases or install net-tools in Wazuh container. Exiting."; exit 1; }
-    pct stop 102
-    clear
-    echo "Wazuh setup is complete."
-}
-install_wazuh
-
 #-------------------------------VELOCIRAPTOR SETUP--------------------------------
 clear
 install_velociraptor(){
@@ -349,6 +358,10 @@ install_velociraptor(){
 
     pct exec 103 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && [ ! -f /etc/velociraptor.config.yaml ] && touch /etc/velociraptor.config.yaml" \
       || { echo "Failed to prepare configuration for Velociraptor. Exiting."; exit 1; }
+
+    #install wazuh agent
+
+    pct exec 101 -- bash -c "echo 'Setting up wazuh-agent.....' && echo && wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.12.0-1_amd64.deb && sudo WAZUH_MANAGER='192.168.50.105' WAZUH_AGENT_NAME='velociraptorCT' dpkg -i ./wazuh-agent_4.12.0-1_amd64.deb && sed -i 's|<address>MANAGER_IP</address>|<address>192.168.50.105</address>|' /var/ossec/etc/ossec.conf && systemctl daemon-reload && systemctl enable wazuh-agent && systemctl start wazuh-agent"
 
     # setup aliases and install net-tools
     pct exec 103 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt-get install -y net-tools; cat <<'EOF' >> ~/.bashrc
@@ -419,6 +432,11 @@ setup_grr(){
 
     # Base deps + GRR .deb
     pct exec 104 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf"
+    
+    #install wazuh agent
+
+    pct exec 104 -- bash -c "echo 'Setting up wazuh-agent.....' && echo && wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.12.0-1_amd64.deb && sudo WAZUH_MANAGER='192.168.50.105' WAZUH_AGENT_NAME='grrCT' dpkg -i ./wazuh-agent_4.12.0-1_amd64.deb && sed -i 's|<address>MANAGER_IP</address>|<address>192.168.50.105</address>|' /var/ossec/etc/ossec.conf && systemctl daemon-reload && systemctl enable wazuh-agent && systemctl start wazuh-agent"
+
     pct exec 104 -- bash -c 'set -euo pipefail; export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y locales wget mariadb-server
@@ -569,6 +587,9 @@ alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
 alias instl=\"apt install -y\"
 alias serve=\"ip a && python3 -m http.server 9090\"
 EOF" || { echo "Failed to set aliases or install net-tools in localstack container. Exiting."; exit 1; }
+#install wazuh agent
+
+    pct exec 105 -- bash -c "echo 'Setting up wazuh-agent.....' && echo && wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.12.0-1_amd64.deb && sudo WAZUH_MANAGER='192.168.50.105' WAZUH_AGENT_NAME='localstackCT' dpkg -i ./wazuh-agent_4.12.0-1_amd64.deb && sed -i 's|<address>MANAGER_IP</address>|<address>192.168.50.105</address>|' /var/ossec/etc/ossec.conf && systemctl daemon-reload && systemctl enable wazuh-agent && systemctl start wazuh-agent"
     pct stop 105
 }  
 setup_localstack
@@ -585,11 +606,14 @@ alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
 alias instl=\"apt install -y\"
 alias serve=\"ip a && python3 -m http.server 9090\"
 EOF" || { echo "Failed to set aliases or install net-tools in deepfence container. Exiting."; exit 1; }
+    #install wazuh agent
+    pct exec 101 -- bash -c "echo 'Setting up wazuh-agent.....' && echo && wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.12.0-1_amd64.deb && sudo WAZUH_MANAGER='192.168.50.105' WAZUH_AGENT_NAME='deepfenceCT' dpkg -i ./wazuh-agent_4.12.0-1_amd64.deb && sed -i 's|<address>MANAGER_IP</address>|<address>192.168.50.105</address>|' /var/ossec/etc/ossec.conf && systemctl daemon-reload && systemctl enable wazuh-agent && systemctl start wazuh-agent"
+
     pct stop 106
 }  
 setup_deepfence
 
-
+#-------------------------------FINAL OUTPUT--------------------------------
 echo "All tasks completed. Please remember to configure deepfence & localstack containers as needed."
 echo
 echo "Access Wazuh dashboard at: https://192.168.50.105"

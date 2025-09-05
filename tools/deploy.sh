@@ -517,7 +517,7 @@ expect {
         exp_continue
     }
     -re {Configure SSL connections for MySQL.*\[[Yy]/?[Nn]\][:>\s]*} { send "N\r"; exp_continue }
-
+    -re {Please enter your hostname e.g. grr.example.com.*[:>\s]*} { send "\r"; exp_continue } 
     -re {Frontend URL .*[:>\s]*}                                  { send "\r"; exp_continue }
     -re {AdminUI URL .*[:>\s]*}                                   { send "\r"; exp_continue }
     -re {Email Domain.*[:>\s]*}                                   { send "\r"; exp_continue }

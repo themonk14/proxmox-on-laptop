@@ -326,7 +326,7 @@ setup_sftp
 #-------------------------------WAZUH SETUP--------------------------------
 clear
 install_wazuh(){
-    pct start 102 && pct exec 102 -- bash -c "apt-get update && apt-get install -y locales curl wget git && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && curl -sO https://packages.wazuh.com/4.12/wazuh-install.sh && bash ./wazuh-install.sh -a && echo \"You can access Wazuh dashboard at https://192.168.50.105/\""
+    pct start 102 && pct exec 102 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales curl wget git && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && curl -sO https://packages.wazuh.com/4.12/wazuh-install.sh && bash ./wazuh-install.sh -a && echo \"You can access Wazuh dashboard at https://192.168.50.105/\""
     #setup aliases and install net-tools
    pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
 alias upd=\"apt update -y\"
@@ -347,7 +347,7 @@ clear
 install_velociraptor(){
     pct start 103 || { echo "Failed to start container for Velociraptor with CT-ID:103. Exiting Now....................."; exit 1; }
 
-    pct exec 103 -- bash -c 'apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && [ ! -f /etc/velociraptor.config.yaml ] && touch /etc/velociraptor.config.yaml' \
+    pct exec 103 -- bash -c 'rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && [ ! -f /etc/velociraptor.config.yaml ] && touch /etc/velociraptor.config.yaml' \
       || { echo "Failed to prepare configuration for Velociraptor. Exiting."; exit 1; }
 
     # setup aliases and install net-tools
@@ -418,6 +418,7 @@ setup_grr(){
     pct start 104 || { echo "Failed to start container for GRR-Rapid with CT-ID:104. Exiting Now....................."; exit 1; }
 
     # Base deps + GRR .deb
+    pct exec 104 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf"
     pct exec 104 -- bash -c 'set -euo pipefail; export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y locales wget mariadb-server
@@ -560,7 +561,7 @@ setup_grr
 clear
 setup_localstack(){
     pct start 105 || { echo "Failed to start container for localstack with CT-ID:105. Exiting Now....................."; exit 1; }
-    pct exec 105 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
+    pct exec 105 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
 alias upd=\"apt update -y\"
 alias upg=\"apt upgrade -y\"
 alias cx=\"clear\"
@@ -576,7 +577,7 @@ setup_localstack
 clear
 setup_deepfence(){
     pct start 106 || { echo "Failed to start container for deepfence with CT-ID:106. Exiting Now....................."; exit 1; }
-    pct exec 106 -- bash -c "apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
+    pct exec 106 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
 alias upd=\"apt update -y\"
 alias upg=\"apt upgrade -y\"
 alias cx=\"clear\"

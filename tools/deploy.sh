@@ -413,6 +413,7 @@ bash /tmp/install_velociraptor.sh
 }
 #install_velociraptor
 #-------------------------------GRR-RAPID SETUP--------------------------------
+#-------------------------------GRR-RAPID SETUP--------------------------------
 setup_grr(){
     pct start 104 || { echo "Failed to start container for GRR-Rapid with CT-ID:104. Exiting Now....................."; exit 1; }
 
@@ -458,13 +459,35 @@ export DEBIAN_FRONTEND=noninteractive
 dpkg -i /root/grr-server_3.4.7-1_amd64.deb || apt-get -y -o Dpkg::Options::=--force-confnew -f install
 '
 
-    # --- Prompt for secrets on host TTY (pct exec has no TTY) ---
-    read -s -p "MySQL ROOT password (leave empty if using unix_socket): " MYSQL_ROOT_PASS; echo
+    # --- Prompt for secrets on host TTY ---
+    # Current MariaDB root password is known: changemenow -> we will rotate it to a new one.
+    OLD_MYSQL_ROOT_PASS_DEFAULT="changemenow"
+    read -s -p "New MySQL ROOT password (will replace 'changemenow'): " NEW_MYSQL_ROOT_PASS; echo
+    [ -z "$NEW_MYSQL_ROOT_PASS" ] && { echo "New MySQL ROOT password cannot be empty."; exit 1; }
+    read -s -p "Re-enter new MySQL ROOT password: " NEW_MYSQL_ROOT_PASS_2; echo
+    [ "$NEW_MYSQL_ROOT_PASS" != "$NEW_MYSQL_ROOT_PASS_2" ] && { echo "Passwords do not match."; exit 1; }
+
     read -s -p "GRR admin password: " ADMIN_PASS; echo
-    MYSQL_Q=$(printf %q "$MYSQL_ROOT_PASS")
+
+    # --- Apply MariaDB root password rotation inside CT 104 (robust to socket/password modes) ---
+    pct exec 104 -- env OLD_ROOT_PASS="$OLD_MYSQL_ROOT_PASS_DEFAULT" NEW_ROOT_PASS="$NEW_MYSQL_ROOT_PASS" bash -lc "set -euo pipefail
+if ! systemctl is-active --quiet mariadb && ! systemctl is-active --quiet mysql; then
+  (systemctl start mariadb || systemctl start mysql) >/dev/null 2>&1 || true
+fi
+
+if mysql -u root -p\"\$OLD_ROOT_PASS\" -e \"SELECT 1\" >/dev/null 2>&1; then
+  mysql -u root -p\"\$OLD_ROOT_PASS\" -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '\$NEW_ROOT_PASS'; FLUSH PRIVILEGES;\"
+else
+  # Fall back to socket login (e.g., if root was on unix_socket plugin)
+  mysql -u root -e \"UPDATE mysql.user SET plugin='mysql_native_password' WHERE User='root' AND Host='localhost'; ALTER USER 'root'@'localhost' IDENTIFIED BY '\$NEW_ROOT_PASS'; FLUSH PRIVILEGES;\"
+fi
+"
+
+    # Quote for safe embedding into the expect call below
+    MYSQL_Q=$(printf %q "$NEW_MYSQL_ROOT_PASS")
     ADMIN_Q=$(printf %q "$ADMIN_PASS")
 
-    # Initialize GRR via Expect. NOTE: single-quoted outer string so $env(...) is preserved for Expect/Tcl.
+    # Initialize GRR via Expect using the NEW MySQL root password
     pct exec 104 -- bash -lc '
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -482,21 +505,10 @@ set admin_pass      [expr {[info exists env(ADMIN_PASS)]      ? $env(ADMIN_PASS)
 spawn grr_config_updater initialize
 
 expect {
-    -re {Use.*Fleetspeak.*\[[Yy]/?[Nn]\][:>\s]*}                  { send "Y\r"; exp_continue }
-    -re {Please enter your hostname.*[:>\s]*}                     { send "\r"; exp_continue }
-
-    -re {Fleetspeak public HTTPS port.*[:>\s]*}                   { send "\r"; exp_continue }
-    -re {Fleetspeak MySQL Host.*[:>\s]*}                          { send "localhost\r"; exp_continue }
-    -re {Fleetspeak MySQL Port.*[:>\s]*}                          { send "3306\r"; exp_continue }
-    -re {Fleetspeak MySQL Database.*[:>\s]*}                      { send "\r"; exp_continue }
-    -re {Fleetspeak MySQL Username.*[:>\s]*}                      { send "\r"; exp_continue }
-    -re {Please enter password for database user .*[:>\s]*} {
-        if { [string length $mysql_root_pass] == 0 } { send "\r" } else { send "$mysql_root_pass\r" }
-        exp_continue
-    }
+    -re {Use.*Fleetspeak.*\[[Yy]/?[Nn]\][:>\s]*}                  { send "n\r"; exp_continue }
 
     -re {MySQL Host.*[:>\s]*}                                     { send "localhost\r"; exp_continue }
-    -re {MySQL Port .*[:>\s]*}                                    { send "0\r"; exp_continue }  ;# 0 = UNIX socket
+    -re {MySQL Port .*[:>\s]*}                                    { send "0\r"; exp_continue }  ;# 0 = UNIX socket (still fine with password auth)
     -re {MySQL Database.*[:>\s]*}                                 { send "\r"; exp_continue }
     -re {MySQL Username.*[:>\s]*}                                 { send "\r"; exp_continue }
     -re {Please enter password for database user .*[:>\s]*} {
@@ -542,6 +554,7 @@ EOF
 }
 
 setup_grr
+
 #-------------------------------LOCALSTACK SETUP--------------------------------
 #clear
 setup_localstack(){

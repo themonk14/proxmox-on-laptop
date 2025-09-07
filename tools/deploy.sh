@@ -271,24 +271,29 @@ pct exec 203 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && ec
 #--------------------------------VM CREATION--------------------------------
 clear && echo "Creating VMs............"
 echo " "
-if ! qm create 300 --name ubuntu-vm --memory 4096 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:50 --ide2 local:iso/ubuntu-22.04.iso,media=cdrom --boot order=ide2 --ostype l26;then
-    echo "Failed to create VM for Ubuntu with VM-ID:201. Exiting Now....................."
+if ! qm create 300 --name Ubuntu-vm --memory 4096 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:50 --ide2 local:iso/ubuntu-22.04.iso,media=cdrom --boot order=ide2 --ostype l26;then
+    echo "Failed to create VM for Ubuntu with VM-ID:300. Exiting Now....................."
     exit 1
 fi
 
 if ! qm create 301 --name kali-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:70 --ide2 local:iso/kali-latest.iso,media=cdrom --boot order=ide2 --ostype l26;then
-    echo "Failed to create VM for Kali with VM-ID:202. Exiting Now....................."
+    echo "Failed to create VM for Kali with VM-ID:301. Exiting Now....................."
     exit 1
 fi
 
 #removed --ide2 local:iso/windows.iso,media=cdrom from below line as the is not present yet
 if ! qm create 302 --name windows-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:80 --boot order=scsi0 --ostype win10;then
-    echo "Failed to create VM for Windows with VM-ID:203. Exiting Now....................."
+    echo "Failed to create VM for Windows with VM-ID:302. Exiting Now....................."
     exit 1
 fi
 
-if ! qm create 303 --name CaineOS --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:80 --ide2 local:iso/caine.iso,media=cdrom --boot order=ide2 --ostype l26;then
+if ! qm create 303 --name CaineOS-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:80 --ide2 local:iso/caine.iso,media=cdrom --boot order=ide2 --ostype l26;then
     echo "Failed to create VM for CaineOS with VM-ID:204. Exiting Now....................."
+    exit 1
+fi
+
+if ! qm create 304 --name Kali-Purple-vm --memory 8192 --cores 2 --net0 virtio,bridge=vmbr0 --scsihw virtio-scsi-pci --scsi0 local-lvm:80 --ide2 local:iso/kali-purple.iso,media=cdrom --boot order=ide2 --ostype l26;then
+    echo "Failed to create VM for Kali-Purple-vm with VM-ID:304. Exiting Now....................."
     exit 1
 fi
 
@@ -594,6 +599,17 @@ EOF" || { echo "Failed to set aliases or install net-tools in localstack contain
 }  
 setup_localstack
 
+#
+clear
+setup_kali(){
+    pct start 107 || { echo "Failed to start container for Kali with CT-ID:107. Exiting Now....................."; exit 1; }
+    #install wazuh agent
+
+    pct exec 107 -- bash -c "echo 'Setting up wazuh-agent.....' && echo && wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.12.0-1_amd64.deb && sudo WAZUH_MANAGER='192.168.50.105' WAZUH_AGENT_NAME='sftpCT' dpkg -i ./wazuh-agent_4.12.0-1_amd64.deb && sed -i 's|<address>MANAGER_IP</address>|<address>192.168.50.105</address>|' /var/ossec/etc/ossec.conf && systemctl daemon-reload && systemctl enable wazuh-agent && systemctl start wazuh-agent"
+
+    pct stop 107
+}
+
 #-------------------------------DEEPFENCE SETUP--------------------------------
 clear
 setup_deepfence(){
@@ -607,7 +623,7 @@ alias instl=\"apt install -y\"
 alias serve=\"ip a && python3 -m http.server 9090\"
 EOF" || { echo "Failed to set aliases or install net-tools in deepfence container. Exiting."; exit 1; }
     #install wazuh agent
-    pct exec 101 -- bash -c "echo 'Setting up wazuh-agent.....' && echo && wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.12.0-1_amd64.deb && sudo WAZUH_MANAGER='192.168.50.105' WAZUH_AGENT_NAME='deepfenceCT' dpkg -i ./wazuh-agent_4.12.0-1_amd64.deb && sed -i 's|<address>MANAGER_IP</address>|<address>192.168.50.105</address>|' /var/ossec/etc/ossec.conf && systemctl daemon-reload && systemctl enable wazuh-agent && systemctl start wazuh-agent"
+    pct exec 106 -- bash -c "echo 'Setting up wazuh-agent.....' && echo && wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.12.0-1_amd64.deb && sudo WAZUH_MANAGER='192.168.50.105' WAZUH_AGENT_NAME='deepfenceCT' dpkg -i ./wazuh-agent_4.12.0-1_amd64.deb && sed -i 's|<address>MANAGER_IP</address>|<address>192.168.50.105</address>|' /var/ossec/etc/ossec.conf && systemctl daemon-reload && systemctl enable wazuh-agent && systemctl start wazuh-agent"
 
     pct stop 106
 }  

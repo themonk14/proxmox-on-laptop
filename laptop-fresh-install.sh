@@ -38,14 +38,14 @@ deb http://security.debian.org/debian-security trixie-security main contrib non-
 # ----------------------------
 # Debian Bookworm (archived)
 # ----------------------------
-deb http://archive.debian.org/debian bookworm main contrib non-free non-free-firmware
-deb http://archive.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
 
 # ----------------------------
 # Debian Buster (archived)
 # ----------------------------
-deb http://archive.debian.org/debian buster main contrib non-free
-deb http://archive.debian.org/debian-security buster/updates main contrib non-free
+#deb http://deb.debian.org/debian buster main contrib non-free
+#deb http://deb.debian.org/debian-security buster/updates main contrib non-free
 
 # ----------------------------
 # Proxmox VE (no-subscription)

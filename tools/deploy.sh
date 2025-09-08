@@ -97,7 +97,6 @@ fi
 
 #--------------------------------ISO DOWNLOAD--------------------------------
 ## Download ISO files
-
 iso_dir="/var/lib/vz/template/iso"
 declare -A iso_urls=(
     ["ubuntu-22.04.iso"]="https://releases.ubuntu.com/22.04/ubuntu-22.04.5-desktop-amd64.iso"
@@ -159,40 +158,74 @@ for ct in "${!ct_urls[@]}"; do
     fi
 done
 
+#--------------------------------SSH KEY COPY TO CONTAINERS--------------------------------
+
+##ssh_key_path="$HOME/.ssh/id_rsa.pub"
+#if [ ! -f "$ssh_key_path" ]; then
+#    echo "SSH public key not found at $ssh_key_path. Please generate one using 'ssh-keygen' and try again."
+#    exit 1
+#fi
+#mapfile -t CT_IDS < <(pct list 2>/dev/null | awk 'NR>1 {print $1}')
+
+#for CTID in "${CT_IDS[@]}"; do
+#    if pct status "$CTID" 2>/dev/null | grep -q "status: running"; then
+#        log "CT $CTID is running: copying ssh key....."
+#        mkdir -p /var/lib/lxc/$CTID/rootfs/root/.ssh
+#        cat "$ssh_key_path" >> /var/lib/lxc/$CTID/rootfs/root/.ssh/authorized_keys
+#        chmod 600 /var/lib/lxc/$CTID/rootfs/root/.ssh/authorized_keys
+#        chmod 700 /var/lib/lxc/$CTID/rootfs/root/.ssh
+#        chown -R 0:0 /var/lib/lxc/$CTID/rootfs/root/.ssh
+#    else
+#        log "CT $CTID stopped. Starting the container to copy ssh key....."
+#        pct start "$CTID"
+#        sleep 10
+#        mkdir -p /var/lib/lxc/$CTID/rootfs/root/.ssh
+#        cat "$ssh_key_path" >> /var/lib/lxc/$CTID/rootfs/root/.ssh/authorized_keys
+#        chmod 600 /var/lib/lxc/$CTID/rootfs/root/.ssh/authorized_keys
+#        chmod 700 /var/lib/lxc/$CTID/rootfs/root/.ssh
+#        chown -R 0:0 /var/lib/lxc/$CTID/rootfs/root/.ssh
+#        sleep 5
+#        pct stop "$CTID"
+#    fi
+
+ #   log "Copied SSH key to $CTID."
+#done
+
 #--------------------------------CONTAINER CREATION--------------------------------
+
 #Create containers for SFTP, Velociraptor, Wazuh
 clear && echo "Creating SFTP container...."
-if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname SFTP-Server-Ubu --nameserver "8.8.8.8" --storage data --rootfs 40 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow --description "root:changemenow"; then
+if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname SFTP-Server-Ubu --nameserver "8.8.8.8" --storage data --rootfs 40 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub" ; then
     echo "Failed to create container for SFTP with CT-ID:101. Exiting Now....................."
     exit 1
 fi
 
 clear && echo "Creating Wazuh container...."
-if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-Ubu --nameserver "8.8.8.8" --storage data --rootfs 40 --memory 8192 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 102 local:vztmpl/$template_name --tags "Blue" --hostname Wazuh-Ubu --nameserver "8.8.8.8" --storage data --rootfs 40 --memory 8192 --swap 4096 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.105/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub"; then
     echo "Failed to create container for Wazuh with CT-ID:102. Exiting Now....................."
     exit 1
 fi
 
 clear && echo "Creating Velociraptor container...."
-if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage data --rootfs 30 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 103 local:vztmpl/$template_name --tags "Blue" --hostname Velociraptor-Ubu --nameserver "8.8.8.8" --storage data --rootfs 30 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.110/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub"; then
     echo "Failed to create container for Velociraptor with CT-ID:103. Exiting Now....................."
     exit 1
 fi
 
 clear && echo "Creating GRR-Rapid-Response container...."
-if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage data --rootfs 30 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 104 local:vztmpl/$template_name --tags "Blue" --hostname GRR-Rapid-Response-Ubu --nameserver "8.8.8.8" --storage data --rootfs 30 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.115/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub"; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
     exit 1
 fi
 
 clear && echo "Creating localstack container...."
-if ! pct create 105 local:vztmpl/$template_name --tags "cloud" --hostname localstack-Ubu --nameserver "8.8.8.8" --storage data --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 105 local:vztmpl/$template_name --tags "cloud" --hostname localstack-Ubu --nameserver "8.8.8.8" --storage data --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub"; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
     exit 1
 fi
 
 clear && echo "Creating deepfence container...."
-if ! pct create 106 local:vztmpl/$template_name --tags "cloud" --hostname deepfence-Ubu --nameserver "8.8.8.8" --storage data --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.120/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow.  https://github.com/deepfence/ThreatMapper. "; then
+if ! pct create 106 local:vztmpl/$template_name --tags "cloud" --hostname deepfence-Ubu --nameserver "8.8.8.8" --storage data --rootfs 30 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.125/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow.  https://github.com/deepfence/ThreatMapper. " --ssh-public-keys "$HOME/.ssh/id_rsa.pub"; then
     echo "Failed to create container for GRR-Rapid with CT-ID:104. Exiting Now....................."
     exit 1
 fi
@@ -201,7 +234,7 @@ fi
 clear && echo "Creating Kali container...."
 if pveam list $storage | grep -i $storage:$dir/kali_amd64; then
     echo "Kali template found. Creating kali container now....................."
-    if ! pct create 107 local:vztmpl/kali_amd64.tar.xz --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage data --rootfs 30 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.125/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+    if ! pct create 107 local:vztmpl/kali_amd64.tar.xz --tags "Red" --hostname Kali  --nameserver "8.8.8.8" --storage data --rootfs 30 --memory 4096 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.125/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub"; then
         echo "Failed to create container for Kali with CT-ID:107. Exiting Now....................."
         exit 1
     fi 
@@ -221,7 +254,7 @@ fi
 
 #Create sandbox containers for Ubuntu and Debian
 clear && echo "Creating Sandbox Ubuntu 1 container...."
-if ! pct create 200 local:vztmpl/$template_name --tags "Sandbox" --hostname Sandbox-Ubu-1 --nameserver "8.8.8.8" --storage data --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.200/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 200 local:vztmpl/$template_name --tags "Sandbox" --hostname Sandbox-Ubu-1 --nameserver "8.8.8.8" --storage data --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.200/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub"; then
     echo "Failed to create container for Sandbox-Ubu-1 with CT-ID:200. Exiting Now....................."
     exit 1
 fi
@@ -233,7 +266,7 @@ pct exec 200 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && ec
     pct stop 200 && clear
 
 clear && echo "Creating Sandbox Ubuntu 2 container...."
-if ! pct create 201 local:vztmpl/$template_name --tags "Sandbox" --hostname Sandbox-Ubu-2 --nameserver "8.8.8.8" --storage data --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.201/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 201 local:vztmpl/$template_name --tags "Sandbox" --hostname Sandbox-Ubu-2 --nameserver "8.8.8.8" --storage data --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.201/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub"; then
     echo "Failed to create container for Sandbox-Ubu-2 with CT-ID:201. Exiting Now....................."
     exit 1
 fi
@@ -245,7 +278,7 @@ pct exec 201 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && ec
     pct stop 201 && clear
 
 clear && echo "Creating Sandox Debian 1 container...."
-if ! pct create 202 $debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-1 --nameserver "8.8.8.8" --storage data --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.202/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 202 $debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-1 --nameserver "8.8.8.8" --storage data --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.202/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub"; then
     echo "Failed to create container for Sandbox-Deb-1 with CT-ID:202. Exiting Now....................."
     exit 1
 fi
@@ -257,7 +290,7 @@ pct exec 202 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && ec
     pct stop 202 && clear
 
 clear && echo "Creating Sandbox Debian 2 container...."
-if ! pct create 203 $debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-2 --nameserver "8.8.8.8" --storage data --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.203/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow"; then
+if ! pct create 203 $debian_template_name --tags "Sandbox-1" --hostname Sandbox-Deb-2 --nameserver "8.8.8.8" --storage data --rootfs 20 --memory 2048 --swap 2048 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.203/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub"; then
     echo "Failed to create container for Sandbox-Deb-2 with CT-ID:203. Exiting Now....................."
     exit 1
 fi

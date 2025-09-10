@@ -1,0 +1,88 @@
+autoinstall:
+  version: 1
+  interactive-sections:
+    - network
+
+  identity:
+    hostname: ubuntu
+    username: machineuser
+    password: $6$Y8XLDVnN3F9cfW5W$PZHmocKzf5B6gozlJPVrsOz3PCu0/kPOrX3NfOHyinpS6CAjS4iD0UlSzdJKiY.RRn2LVLeOQ9/4AiuddOriP/
+
+  locale: en_US.UTF-8
+
+  keyboard:
+    layout: us
+    variant: ""
+    toggle: null
+
+  source:
+    id: ubuntu-desktop
+
+  apt:
+    preserve_sources_list: false
+    primary:
+      - arches: [amd64]
+        uri: http://archive.ubuntu.com/ubuntu
+    security:
+      - arches: [amd64]
+        uri: http://security.ubuntu.com/ubuntu
+
+  storage:
+    layout:
+      name: lvm
+      sizing-policy: all
+
+  ssh:
+      install-server: true
+      #authorized-keys: []
+      allow-pw: true
+
+  drivers:
+    install: true
+
+  updates: all
+
+  packages:
+    - python3
+    - net-tools
+    - wget
+    - curl
+    - python3-pip
+    - git
+    - rkhunter
+    - chkrootkit
+
+  late-commands:
+    - |
+      curtin in-target -- bash -lc '
+        set -e
+        apt-get update
+        if ! apt-get install -y ansible; then
+          python3 -m pip install --break-system-packages ansible
+        fi
+      '
+
+    - |
+      curtin in-target -- bash -lc 'cat << "EOF" >> /root/.bashrc
+      alias upd="apt update -y"
+      alias upg="apt upgrade -y"
+      alias cx="clear"
+      alias nstatus="/usr/bin/watch -n 1 /usr/bin/netstat -alntup"
+      alias instl="apt install -y"
+      alias serve="ip a && python3 -m http.server 9090"
+      EOF
+      '
+
+    - |
+      curtin in-target -- bash -lc '
+        set -e
+        echo "Setting up wazuh-agent....."
+        wget -q https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.12.0-1_amd64.deb
+        dpkg -i ./wazuh-agent_4.12.0-1_amd64.deb || apt-get -f install -y
+        sed -i "s|<address>MANAGER_IP</address>|<address>192.168.50.105</address>|" /var/ossec/etc/ossec.conf
+        systemctl daemon-reload
+        systemctl enable wazuh-agent
+        systemctl start wazuh-agent
+      '
+
+  shutdown: reboot

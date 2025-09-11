@@ -194,6 +194,13 @@ done
 #--------------------------------CONTAINER CREATION--------------------------------
 
 #Create containers for SFTP, Velociraptor, Wazuh
+
+clear && echo "Creating SFTP container...."
+if ! pct create 100 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname Graylog-Ubu --nameserver "8.8.8.8" --storage data --rootfs 40 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.177/24,gw=192.168.50.1 --cores=2 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub" ; then
+    echo "Failed to create container for SFTP with CT-ID:101. Exiting Now....................."
+    exit 1
+fi
+
 clear && echo "Creating SFTP container...."
 if ! pct create 101 local:vztmpl/$template_name --tags "general, ftp-server, filetransfer" --hostname SFTP-Server-Ubu --nameserver "8.8.8.8" --storage data --rootfs 40 --memory 2048 --swap 1024 --net0 name=eth0,bridge=vmbr0,ip=192.168.50.100/24,gw=192.168.50.1 --cores=1 --password changemenow --description "root:changemenow" --ssh-public-keys "$HOME/.ssh/id_rsa.pub" ; then
     echo "Failed to create container for SFTP with CT-ID:101. Exiting Now....................."
@@ -330,10 +337,39 @@ if ! qm create 304 --name Kali-Purple-vm --memory 8192 --cores 2 --net0 virtio,b
     exit 1
 fi
 
+#-------------------------------Graylog SETUP--------------------------------
+
+clear
+setup_graylog(){
+    clear
+    echo "Setting up Graylog in container 100."
+    
+    #replace nameserver and setup locale
+    pct start 100 && pct exec 100 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && clear"
+    
+    #install graylog
+    #will update rest of the commands here.
+
+    #setup aliases and install net-tools
+    pct exec 100 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
+alias upd=\"apt update -y\"
+alias upg=\"apt upgrade -y\"
+alias cx=\"clear\"
+alias nstatus=\"/usr/bin/watch -n 1 /usr/bin/netstat -alntup\"
+alias instl=\"apt install -y\"
+alias serve=\"ip a && python3 -m http.server 9090\"
+EOF" || { echo "Failed to set aliases or install net-tools in Wazuh container. Exiting."; exit 1; }
+    clear
+}
+
+
 #-------------------------------WAZUH SETUP--------------------------------
 clear
 install_wazuh(){
+
+    #replace nameserver and setup locale
     pct start 102 && pct exec 102 -- bash -c "rm -rf /etc/resolv.conf && touch /etc/resolv.conf && echo 'nameserver 8.8.8.8' >> /etc/resolv.conf && echo 'nameserver 8.8.4.4' >> /etc/resolv.conf && apt-get update && apt-get install -y locales curl wget git && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && curl -sO https://packages.wazuh.com/4.12/wazuh-install.sh && bash ./wazuh-install.sh -a && echo \"You can access Wazuh dashboard at https://192.168.50.105/\""
+
     #setup aliases and install net-tools
    pct exec 102 -- bash -c "dpkg -s net-tools >/dev/null 2>&1 || apt install net-tools -y; cat <<'EOF' >> ~/.bashrc
 alias upd=\"apt update -y\"

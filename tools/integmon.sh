@@ -1,5 +1,6 @@
 #!/bin/bash
 # Configuration
+#Test script for monitoring file integrity in a specified directory. Vibe-coded using antigravity by google.
 DB_FILE=".integrity_db"
 TARGET_DIR="${1:-.}"
 # Determine hashing command
